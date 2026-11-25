@@ -18,10 +18,17 @@ const bannerId = 'ca-app-pub-3940256099942544/6300978111';
 const interId = 'ca-app-pub-3940256099942544/1033173712';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  MobileAds.instance.initialize();
-  Ads.load();
-  runApp(const KnsApp());
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
+    runApp(const KnsApp());
+    // ads baad ma chalu thay, jethi ad ni koi problem hoy to bhi app khule
+    Future.delayed(const Duration(seconds: 3), () async {
+      try {
+        await MobileAds.instance.initialize();
+        Ads.load();
+      } catch (_) {}
+    });
+  }, (e, s) {});
 }
 
 class Ads {
