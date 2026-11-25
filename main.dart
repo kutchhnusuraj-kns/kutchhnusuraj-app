@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -13,105 +12,7 @@ const base =
     'https://firestore.googleapis.com/v1/projects/kutchhnusuraj-97c95/databases/(default)/documents';
 const site = 'https://kutchhnusuraj-kns.github.io';
 
-// AdMob IDs: abhi TEST IDs che. Real AdMob ID male tyare badlo.
-const bannerId = 'ca-app-pub-3940256099942544/6300978111';
-const interId = 'ca-app-pub-3940256099942544/1033173712';
-
-void main() {
-  runZonedGuarded(() {
-    WidgetsFlutterBinding.ensureInitialized();
-    runApp(const KnsApp());
-    // ads baad ma chalu thay, jethi ad ni koi problem hoy to bhi app khule
-    Future.delayed(const Duration(seconds: 3), () async {
-      try {
-        await MobileAds.instance.initialize();
-        Ads.load();
-      } catch (_) {}
-    });
-  }, (e, s) {});
-}
-
-class Ads {
-  static InterstitialAd? _i;
-  static int _n = 0;
-  static void load() {
-    InterstitialAd.load(
-      adUnitId: interId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-          onAdLoaded: (a) => _i = a, onAdFailedToLoad: (e) => _i = null),
-    );
-  }
-
-  // darek 4th news kholta full screen ad
-  static void maybeShow() {
-    _n++;
-    final a = _i;
-    if (_n % 4 == 0 && a != null) {
-      _i = null;
-      a.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (x) {
-          x.dispose();
-          load();
-        },
-        onAdFailedToShowFullScreenContent: (x, e) {
-          x.dispose();
-          load();
-        },
-      );
-      a.show();
-    } else if (a == null) {
-      load();
-    }
-  }
-}
-
-class AdCard extends StatefulWidget {
-  const AdCard({super.key});
-  @override
-  State<AdCard> createState() => _AdCardState();
-}
-
-class _AdCardState extends State<AdCard> {
-  BannerAd? ad;
-  bool ok = false;
-  @override
-  void initState() {
-    super.initState();
-    ad = BannerAd(
-      adUnitId: bannerId,
-      size: AdSize.mediumRectangle,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          if (mounted) setState(() => ok = true);
-        },
-        onAdFailedToLoad: (a, e) => a.dispose(),
-      ),
-    )..load();
-  }
-
-  @override
-  void dispose() {
-    ad?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => ok
-      ? Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(16)),
-          child: Column(children: [
-            const Text('જાહેરાત', style: TextStyle(color: Colors.black45, fontSize: 11)),
-            const SizedBox(height: 6),
-            SizedBox(width: 300, height: 250, child: AdWidget(ad: ad!)),
-          ]),
-        )
-      : const SizedBox.shrink();
-}
+void main() => runApp(const KnsApp());
 
 class KnsApp extends StatelessWidget {
   const KnsApp({super.key});
@@ -246,7 +147,7 @@ class _LogoSplashState extends State<LogoSplash>
                 curve: Curves.easeIn,
                 builder: (_, v, __) => Opacity(
                     opacity: v,
-                    child: const Text('કચ્છ, ગુજરાત અને દેશની ખબર',
+                    child: const Text('嗒曕獨喃嵿獩, 嗒椸珌嗒溹嗒距 嗒呧喃� 嗒︵珖嗒多喃€ 嗒栢嗒�',
                         style: TextStyle(color: Colors.white70, fontSize: 15))),
               ),
             ]),
@@ -333,20 +234,20 @@ class _IntroState extends State<Intro> {
             children: const [
               LogoSplash(),
               Slide(
-                  title: 'બધી ખબર, એક જગ્યાએ',
-                  desc: 'ઇન્ડિયા થી કચ્છ સુધીના સમાચાર, તમારી પસંદની કેટેગરી મુજબ વાંચો.',
+                  title: '嗒喃€ 嗒栢嗒�, 嗒忇獣 嗒溹獥喃嵿嗒距獜',
+                  desc: '嗒囙喃嵿嗒苦嗒� 嗒ム珋 嗒曕獨喃嵿獩 嗒膏珌嗒о珋嗒ㄠ 嗒膏嗒距獨嗒距, 嗒む嗒距喃€ 嗒嗒傕嗒ㄠ珋 嗒曕珖嗒熰珖嗒椸喃€ 嗒珌嗒溹 嗒掂嗒傕獨喃�.',
                   child: CatPop()),
               Slide(
-                  title: 'વિડિયો જુઓ, એપમાં જ',
-                  desc: 'YouTube અને Instagram ના વિડિયો સીધા એપમાં પ્લે થાય છે.',
+                  title: '嗒掂嗒∴嗒珛 嗒溹珌嗒�, 嗒忇嗒嗒� 嗒�',
+                  desc: 'YouTube 嗒呧喃� Instagram 嗒ㄠ 嗒掂嗒∴嗒珛 嗒膏珋嗒о 嗒忇嗒嗒� 嗒珝嗒侧珖 嗒ム嗒� 嗒涏珖.',
                   child: VideoCards()),
               Slide(
-                  title: 'તાજા સમાચાર, સૌથી પહેલા',
-                  desc: 'નવી ખબર આવતા જ તમારી સ્ક્રીન પર દેખાય છે.',
+                  title: '嗒む嗒溹 嗒膏嗒距獨嗒距, 嗒膏珜嗒ム珋 嗒喃囙嗒�',
+                  desc: '嗒ㄠ喃€ 嗒栢嗒� 嗒嗋嗒む 嗒� 嗒む嗒距喃€ 嗒膏珝嗒曕珝嗒班珋嗒� 嗒 嗒︵珖嗒栢嗒� 嗒涏珖.',
                   child: Ticker()),
               Slide(
-                  title: 'સબ કેટેગરીથી સચોટ શોધ',
-                  desc: 'કચ્છમાં ભુજ, ભચાઉ, અંજાર જેવા વિસ્તાર મુજબ સમાચાર મેળવો.',
+                  title: '嗒膏 嗒曕珖嗒熰珖嗒椸喃€嗒ム珋 嗒膏獨喃嬥獰 嗒多珛嗒�',
+                  desc: '嗒曕獨喃嵿獩嗒嗒� 嗒珌嗒�, 嗒獨嗒距獕, 嗒呧獋嗒溹嗒� 嗒溹珖嗒掂 嗒掂嗒膏珝嗒む嗒� 嗒珌嗒溹 嗒膏嗒距獨嗒距 嗒珖嗒赤喃�.',
                   child: SubTree()),
             ],
           ),
@@ -386,7 +287,7 @@ class _IntroState extends State<Intro> {
                     : pc.nextPage(
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.easeInOut),
-                child: Text(i == 4 ? 'શરૂ કરો' : 'આગળ',
+                child: Text(i == 4 ? '嗒多喃� 嗒曕喃�' : '嗒嗋獥嗒�',
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ]),
@@ -525,7 +426,7 @@ class Ticker extends StatefulWidget {
 class _TickerState extends State<Ticker> {
   final sc = ScrollController();
   Timer? t;
-  static const items = ['BREAKING', 'કચ્છ', 'ગુજરાત', 'ઇન્ડિયા', 'ક્રાઇમ', 'પોલિટિક્સ'];
+  static const items = ['BREAKING', '嗒曕獨喃嵿獩', '嗒椸珌嗒溹嗒距', '嗒囙喃嵿嗒苦嗒�', '嗒曕珝嗒班嗒囙', '嗒珛嗒侧嗒熰嗒曕珝嗒�'];
   @override
   void initState() {
     super.initState();
@@ -597,10 +498,10 @@ class SubTree extends StatelessWidget {
         pop(0, chip('KUTCH', big: true)),
         pop(1, const Icon(Icons.keyboard_double_arrow_down, color: gold, size: 40)),
         Wrap(spacing: 10, runSpacing: 10, alignment: WrapAlignment.center, children: [
-          pop(2, chip('ભુજ')),
-          pop(3, chip('ભચાઉ')),
-          pop(4, chip('અંજાર')),
-          pop(5, chip('માંડવી')),
+          pop(2, chip('嗒珌嗒�')),
+          pop(3, chip('嗒獨嗒距獕')),
+          pop(4, chip('嗒呧獋嗒溹嗒�')),
+          pop(5, chip('嗒嗒傕嗒掂珋')),
         ]),
       ]);
 }
@@ -663,11 +564,6 @@ class _HomeState extends State<Home> {
             (sub == null || p['subCategoryId'] == sub))
         .toList();
     final subList = subs.where((s) => s['categoryId'] == cat).toList();
-    final rows = <int>[];
-    for (int k = 0; k < list.length; k++) {
-      rows.add(k);
-      if ((k + 1) % 4 == 0) rows.add(-1);
-    }
     return Scaffold(
       appBar: AppBar(
         backgroundColor: ink,
@@ -738,21 +634,13 @@ class _HomeState extends State<Home> {
                             ])
                           : ListView.builder(
                               padding: const EdgeInsets.all(12),
-                              itemCount: rows.length,
-                              itemBuilder: (_, r) {
-                                final i = rows[r];
-                                if (i < 0) return const AdCard();
-                                return NewsCard(
-                                    big: i == 0,
-                                    p: list[i],
-                                    cat: catName(list[i]['categoryId']),
-                                    onTap: () {
-                                      Ads.maybeShow();
-                                      Navigator.of(context).push(MaterialPageRoute(
-                                          builder: (_) => Detail(
-                                              p: list[i], cat: catName(list[i]['categoryId']))));
-                                    });
-                              }),
+                              itemCount: list.length,
+                              itemBuilder: (_, i) => NewsCard(
+                                  p: list[i],
+                                  cat: catName(list[i]['categoryId']),
+                                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (_) =>
+                                          Detail(p: list[i], cat: catName(list[i]['categoryId'])))))),
                     ),
         ),
       ]),
@@ -771,136 +659,42 @@ class _HomeState extends State<Home> {
       );
 }
 
-String fdate(String? iso) {
-  final d = DateTime.tryParse(iso ?? '');
-  if (d == null) return '';
-  final l = d.toLocal();
-  const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return '${l.day} ${m[l.month - 1]} ${l.year}';
-}
-
-List<String> imgsOf(Map<String, String> p) {
-  final s = (p['images'] ?? '')
-      .split('\n')
-      .map((e) => e.trim())
-      .where((e) => e.isNotEmpty)
-      .toList();
-  if (s.isEmpty && (p['imageUrl'] ?? '').isNotEmpty) s.add(p['imageUrl']!);
-  return s;
-}
-
-Widget badge(String t) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: gold, borderRadius: BorderRadius.circular(4)),
-      child: Text(t,
-          style: const TextStyle(
-              color: ink, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .8)),
-    );
-
-Widget netImg(String u) => ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.network(u,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-          loadingBuilder: (c, w, pr) => pr == null
-              ? w
-              : Container(
-                  height: 200,
-                  color: Colors.black12,
-                  child: const Center(
-                      child: CircularProgressIndicator(color: gold, strokeWidth: 2)))),
-    );
-
 class NewsCard extends StatelessWidget {
   final Map<String, String> p;
   final String cat;
   final VoidCallback onTap;
-  final bool big;
-  const NewsCard(
-      {super.key, required this.p, required this.cat, required this.onTap, this.big = false});
+  const NewsCard({super.key, required this.p, required this.cat, required this.onTap});
   @override
   Widget build(BuildContext context) {
-    final imgs = imgsOf(p);
+    final img = p['imageUrl'] ?? '';
     final hasVideo = (p['videoUrl'] ?? '').isNotEmpty;
-    final desc = (p['description'] ?? '').replaceAll(RegExp(r'\[img\d+\]'), '').trim();
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+    return Card(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 12, offset: const Offset(0, 4))
-        ],
-      ),
+      margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: onTap,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (imgs.isNotEmpty)
+          if (img.isNotEmpty)
             Stack(children: [
-              AspectRatio(
-                aspectRatio: big ? 16 / 10 : 16 / 9,
-                child: Image.network(imgs.first,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: ink)),
-              ),
-              Positioned.fill(
-                  child: DecoratedBox(
-                      decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                              begin: Alignment.center,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black.withOpacity(.45)])))),
-              Positioned(left: 12, top: 12, child: badge(cat)),
+              Image.network(img,
+                  height: 190,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 0)),
               if (hasVideo)
-                const Positioned.fill(
-                    child: Center(
-                        child: Icon(Icons.play_circle_fill, color: Colors.white, size: 58))),
-              if (imgs.length > 1)
-                Positioned(
-                    right: 12,
+                const Positioned(
+                    right: 10,
                     bottom: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                          color: Colors.black54, borderRadius: BorderRadius.circular(10)),
-                      child: Row(children: [
-                        const Icon(Icons.photo_library, color: Colors.white, size: 14),
-                        const SizedBox(width: 4),
-                        Text('${imgs.length}',
-                            style: const TextStyle(color: Colors.white, fontSize: 12)),
-                      ]),
-                    )),
+                    child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
             ]),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: const EdgeInsets.all(12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (imgs.isEmpty) ...[badge(cat), const SizedBox(height: 10)],
               Text(p['title'] ?? '',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: big ? 22 : 19, fontWeight: FontWeight.w800, height: 1.3)),
-              if (desc.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(desc,
-                    maxLines: big ? 3 : 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.black54, fontSize: 15, height: 1.45)),
-              ],
-              const SizedBox(height: 12),
-              Row(children: [
-                const Icon(Icons.access_time, size: 15, color: Colors.black45),
-                const SizedBox(width: 5),
-                Text(fdate(p['createdAt']),
-                    style: const TextStyle(color: Colors.black54, fontSize: 13)),
-                const Spacer(),
-                const Text('વાંચો ',
-                    style: TextStyle(color: gold, fontWeight: FontWeight.w800)),
-                const Icon(Icons.arrow_forward, size: 16, color: gold),
-              ]),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Text('$cat  ${(p['createdAt'] ?? '').split('T').first}${hasVideo && img.isEmpty ? '  VIDEO' : ''}',
+                  style: const TextStyle(color: Colors.black54, fontSize: 13)),
             ]),
           ),
         ]),
@@ -945,93 +739,34 @@ class _DetailState extends State<Detail> {
     }
   }
 
-  Widget imgBlock(String u) =>
-      Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: netImg(u));
-
   @override
   Widget build(BuildContext context) {
     final p = widget.p;
-    final imgs = imgsOf(p);
+    final img = p['imageUrl'] ?? '';
     final w = MediaQuery.of(context).size.width;
-    final marker = RegExp(r'^\[img(\d+)\]$');
-    final paras = (p['description'] ?? '')
-        .split(RegExp(r'\n+'))
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    final used = <int>{};
-    for (final s in paras) {
-      final m = marker.firstMatch(s);
-      if (m != null) used.add(int.parse(m.group(1)!));
-    }
-    final free = [
-      for (int k = 2; k <= imgs.length; k++)
-        if (!used.contains(k)) k
-    ];
-    final body = <Widget>[];
-    int fi = 0;
-    for (final s in paras) {
-      final m = marker.firstMatch(s);
-      if (m != null) {
-        final n = int.parse(m.group(1)!);
-        if (n >= 1 && n <= imgs.length) body.add(imgBlock(imgs[n - 1]));
-        continue;
-      }
-      body.add(Text(s, style: const TextStyle(fontSize: 18, height: 1.7)));
-      body.add(const SizedBox(height: 8));
-      if (fi < free.length) {
-        body.add(imgBlock(imgs[free[fi] - 1]));
-        fi++;
-      }
-    }
-    while (fi < free.length) {
-      body.add(imgBlock(imgs[free[fi] - 1]));
-      fi++;
-    }
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
           backgroundColor: ink,
           iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text('KUTCHHNUSURAJ',
-              style: TextStyle(color: gold, fontWeight: FontWeight.w800, letterSpacing: 1))),
+          title: Text(widget.cat, style: const TextStyle(color: gold, fontWeight: FontWeight.w800))),
       body: ListView(children: [
         if (wc != null)
           SizedBox(height: w * ratio, child: WebViewWidget(controller: wc!))
-        else if (imgs.isNotEmpty)
-          Image.network(imgs.first,
+        else if (img.isNotEmpty)
+          Image.network(img,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+              errorBuilder: (_, __, ___) => const SizedBox(height: 0)),
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 40),
+          padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            badge(widget.cat),
-            const SizedBox(height: 12),
             Text(p['title'] ?? '',
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.3)),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.3)),
+            const SizedBox(height: 8),
+            Text((p['createdAt'] ?? '').split('T').first,
+                style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 14),
-            Row(children: [
-              Container(
-                  width: 30,
-                  height: 30,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: gold)),
-                  child: Image.asset('logo.png')),
-              const SizedBox(width: 10),
-              const Text('KUTCHHNUSURAJ',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-              const Text('  •  ', style: TextStyle(color: Colors.black38)),
-              Text(fdate(p['createdAt']),
-                  style: const TextStyle(color: Colors.black54, fontSize: 13)),
-            ]),
-            const SizedBox(height: 14),
-            Container(height: 3, width: 60, color: gold),
-            const SizedBox(height: 18),
-            ...body,
+            Text(p['description'] ?? '', style: const TextStyle(fontSize: 17, height: 1.6)),
           ]),
         ),
       ]),
