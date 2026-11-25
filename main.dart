@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -12,7 +13,98 @@ const base =
     'https://firestore.googleapis.com/v1/projects/kutchhnusuraj-97c95/databases/(default)/documents';
 const site = 'https://kutchhnusuraj-kns.github.io';
 
-void main() => runApp(const KnsApp());
+// AdMob IDs: abhi TEST IDs che. Real AdMob ID male tyare badlo.
+const bannerId = 'ca-app-pub-3940256099942544/6300978111';
+const interId = 'ca-app-pub-3940256099942544/1033173712';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
+  Ads.load();
+  runApp(const KnsApp());
+}
+
+class Ads {
+  static InterstitialAd? _i;
+  static int _n = 0;
+  static void load() {
+    InterstitialAd.load(
+      adUnitId: interId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (a) => _i = a, onAdFailedToLoad: (e) => _i = null),
+    );
+  }
+
+  // darek 4th news kholta full screen ad
+  static void maybeShow() {
+    _n++;
+    final a = _i;
+    if (_n % 4 == 0 && a != null) {
+      _i = null;
+      a.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (x) {
+          x.dispose();
+          load();
+        },
+        onAdFailedToShowFullScreenContent: (x, e) {
+          x.dispose();
+          load();
+        },
+      );
+      a.show();
+    } else if (a == null) {
+      load();
+    }
+  }
+}
+
+class AdCard extends StatefulWidget {
+  const AdCard({super.key});
+  @override
+  State<AdCard> createState() => _AdCardState();
+}
+
+class _AdCardState extends State<AdCard> {
+  BannerAd? ad;
+  bool ok = false;
+  @override
+  void initState() {
+    super.initState();
+    ad = BannerAd(
+      adUnitId: bannerId,
+      size: AdSize.mediumRectangle,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() => ok = true);
+        },
+        onAdFailedToLoad: (a, e) => a.dispose(),
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    ad?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ok
+      ? Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          child: Column(children: [
+            const Text('જાહેરાત', style: TextStyle(color: Colors.black45, fontSize: 11)),
+            const SizedBox(height: 6),
+            SizedBox(width: 300, height: 250, child: AdWidget(ad: ad!)),
+          ]),
+        )
+      : const SizedBox.shrink();
+}
 
 class KnsApp extends StatelessWidget {
   const KnsApp({super.key});
@@ -564,6 +656,11 @@ class _HomeState extends State<Home> {
             (sub == null || p['subCategoryId'] == sub))
         .toList();
     final subList = subs.where((s) => s['categoryId'] == cat).toList();
+    final rows = <int>[];
+    for (int k = 0; k < list.length; k++) {
+      rows.add(k);
+      if ((k + 1) % 4 == 0) rows.add(-1);
+    }
     return Scaffold(
       appBar: AppBar(
         backgroundColor: ink,
@@ -634,13 +731,21 @@ class _HomeState extends State<Home> {
                             ])
                           : ListView.builder(
                               padding: const EdgeInsets.all(12),
-                              itemCount: list.length,
-                              itemBuilder: (_, i) => NewsCard(
-                                  p: list[i],
-                                  cat: catName(list[i]['categoryId']),
-                                  onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (_) =>
-                                          Detail(p: list[i], cat: catName(list[i]['categoryId'])))))),
+                              itemCount: rows.length,
+                              itemBuilder: (_, r) {
+                                final i = rows[r];
+                                if (i < 0) return const AdCard();
+                                return NewsCard(
+                                    big: i == 0,
+                                    p: list[i],
+                                    cat: catName(list[i]['categoryId']),
+                                    onTap: () {
+                                      Ads.maybeShow();
+                                      Navigator.of(context).push(MaterialPageRoute(
+                                          builder: (_) => Detail(
+                                              p: list[i], cat: catName(list[i]['categoryId']))));
+                                    });
+                              }),
                     ),
         ),
       ]),
@@ -659,42 +764,136 @@ class _HomeState extends State<Home> {
       );
 }
 
+String fdate(String? iso) {
+  final d = DateTime.tryParse(iso ?? '');
+  if (d == null) return '';
+  final l = d.toLocal();
+  const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${l.day} ${m[l.month - 1]} ${l.year}';
+}
+
+List<String> imgsOf(Map<String, String> p) {
+  final s = (p['images'] ?? '')
+      .split('\n')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  if (s.isEmpty && (p['imageUrl'] ?? '').isNotEmpty) s.add(p['imageUrl']!);
+  return s;
+}
+
+Widget badge(String t) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: gold, borderRadius: BorderRadius.circular(4)),
+      child: Text(t,
+          style: const TextStyle(
+              color: ink, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .8)),
+    );
+
+Widget netImg(String u) => ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(u,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          loadingBuilder: (c, w, pr) => pr == null
+              ? w
+              : Container(
+                  height: 200,
+                  color: Colors.black12,
+                  child: const Center(
+                      child: CircularProgressIndicator(color: gold, strokeWidth: 2)))),
+    );
+
 class NewsCard extends StatelessWidget {
   final Map<String, String> p;
   final String cat;
   final VoidCallback onTap;
-  const NewsCard({super.key, required this.p, required this.cat, required this.onTap});
+  final bool big;
+  const NewsCard(
+      {super.key, required this.p, required this.cat, required this.onTap, this.big = false});
   @override
   Widget build(BuildContext context) {
-    final img = p['imageUrl'] ?? '';
+    final imgs = imgsOf(p);
     final hasVideo = (p['videoUrl'] ?? '').isNotEmpty;
-    return Card(
+    final desc = (p['description'] ?? '').replaceAll(RegExp(r'\[img\d+\]'), '').trim();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 12, offset: const Offset(0, 4))
+        ],
+      ),
       child: InkWell(
         onTap: onTap,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (img.isNotEmpty)
+          if (imgs.isNotEmpty)
             Stack(children: [
-              Image.network(img,
-                  height: 190,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(height: 0)),
+              AspectRatio(
+                aspectRatio: big ? 16 / 10 : 16 / 9,
+                child: Image.network(imgs.first,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(color: ink)),
+              ),
+              Positioned.fill(
+                  child: DecoratedBox(
+                      decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                              begin: Alignment.center,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black.withOpacity(.45)])))),
+              Positioned(left: 12, top: 12, child: badge(cat)),
               if (hasVideo)
-                const Positioned(
-                    right: 10,
+                const Positioned.fill(
+                    child: Center(
+                        child: Icon(Icons.play_circle_fill, color: Colors.white, size: 58))),
+              if (imgs.length > 1)
+                Positioned(
+                    right: 12,
                     bottom: 10,
-                    child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: Colors.black54, borderRadius: BorderRadius.circular(10)),
+                      child: Row(children: [
+                        const Icon(Icons.photo_library, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        Text('${imgs.length}',
+                            style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      ]),
+                    )),
             ]),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              if (imgs.isEmpty) ...[badge(cat), const SizedBox(height: 10)],
               Text(p['title'] ?? '',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 6),
-              Text('$cat  ${(p['createdAt'] ?? '').split('T').first}${hasVideo && img.isEmpty ? '  VIDEO' : ''}',
-                  style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: big ? 22 : 19, fontWeight: FontWeight.w800, height: 1.3)),
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(desc,
+                    maxLines: big ? 3 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.black54, fontSize: 15, height: 1.45)),
+              ],
+              const SizedBox(height: 12),
+              Row(children: [
+                const Icon(Icons.access_time, size: 15, color: Colors.black45),
+                const SizedBox(width: 5),
+                Text(fdate(p['createdAt']),
+                    style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                const Spacer(),
+                const Text('વાંચો ',
+                    style: TextStyle(color: gold, fontWeight: FontWeight.w800)),
+                const Icon(Icons.arrow_forward, size: 16, color: gold),
+              ]),
             ]),
           ),
         ]),
@@ -739,34 +938,93 @@ class _DetailState extends State<Detail> {
     }
   }
 
+  Widget imgBlock(String u) =>
+      Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: netImg(u));
+
   @override
   Widget build(BuildContext context) {
     final p = widget.p;
-    final img = p['imageUrl'] ?? '';
+    final imgs = imgsOf(p);
     final w = MediaQuery.of(context).size.width;
+    final marker = RegExp(r'^\[img(\d+)\]$');
+    final paras = (p['description'] ?? '')
+        .split(RegExp(r'\n+'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    final used = <int>{};
+    for (final s in paras) {
+      final m = marker.firstMatch(s);
+      if (m != null) used.add(int.parse(m.group(1)!));
+    }
+    final free = [
+      for (int k = 2; k <= imgs.length; k++)
+        if (!used.contains(k)) k
+    ];
+    final body = <Widget>[];
+    int fi = 0;
+    for (final s in paras) {
+      final m = marker.firstMatch(s);
+      if (m != null) {
+        final n = int.parse(m.group(1)!);
+        if (n >= 1 && n <= imgs.length) body.add(imgBlock(imgs[n - 1]));
+        continue;
+      }
+      body.add(Text(s, style: const TextStyle(fontSize: 18, height: 1.7)));
+      body.add(const SizedBox(height: 8));
+      if (fi < free.length) {
+        body.add(imgBlock(imgs[free[fi] - 1]));
+        fi++;
+      }
+    }
+    while (fi < free.length) {
+      body.add(imgBlock(imgs[free[fi] - 1]));
+      fi++;
+    }
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
           backgroundColor: ink,
           iconTheme: const IconThemeData(color: Colors.white),
-          title: Text(widget.cat, style: const TextStyle(color: gold, fontWeight: FontWeight.w800))),
+          title: const Text('KUTCHHNUSURAJ',
+              style: TextStyle(color: gold, fontWeight: FontWeight.w800, letterSpacing: 1))),
       body: ListView(children: [
         if (wc != null)
           SizedBox(height: w * ratio, child: WebViewWidget(controller: wc!))
-        else if (img.isNotEmpty)
-          Image.network(img,
+        else if (imgs.isNotEmpty)
+          Image.network(imgs.first,
               width: double.infinity,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox(height: 0)),
+              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 40),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            badge(widget.cat),
+            const SizedBox(height: 12),
             Text(p['title'] ?? '',
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.3)),
-            const SizedBox(height: 8),
-            Text((p['createdAt'] ?? '').split('T').first,
-                style: const TextStyle(color: Colors.black54)),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.3)),
             const SizedBox(height: 14),
-            Text(p['description'] ?? '', style: const TextStyle(fontSize: 17, height: 1.6)),
+            Row(children: [
+              Container(
+                  width: 30,
+                  height: 30,
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: gold)),
+                  child: Image.asset('logo.png')),
+              const SizedBox(width: 10),
+              const Text('KUTCHHNUSURAJ',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              const Text('  •  ', style: TextStyle(color: Colors.black38)),
+              Text(fdate(p['createdAt']),
+                  style: const TextStyle(color: Colors.black54, fontSize: 13)),
+            ]),
+            const SizedBox(height: 14),
+            Container(height: 3, width: 60, color: gold),
+            const SizedBox(height: 18),
+            ...body,
           ]),
         ),
       ]),
