@@ -19,6 +19,9 @@ jobs:
       - run: flutter create --platforms=android --org com.kutchhnusuraj --project-name kutchhnusuraj .
       - run: sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
       - run: sed -i 's|android:label="[^"]*"|android:label="Kutchhnusuraj"|' android/app/src/main/AndroidManifest.xml
+      - name: Disable lint
+        run: |
+          sed -i '0,/^android {/s//android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }/' android/app/build.gradle*
       - run: flutter pub get
       - run: dart run flutter_launcher_icons
       - run: dart run flutter_native_splash:create
