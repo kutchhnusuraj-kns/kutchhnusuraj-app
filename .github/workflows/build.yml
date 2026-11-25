@@ -19,15 +19,6 @@ jobs:
       - run: flutter create --platforms=android --org com.kutchhnusuraj --project-name kutchhnusuraj .
       - run: sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
       - run: sed -i 's|android:label="[^"]*"|android:label="Kutchhnusuraj"|' android/app/src/main/AndroidManifest.xml
-      - name: AdMob app id and min SDK
-        run: |
-          sed -i 's|</application>|    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713"/>\n    </application>|' android/app/src/main/AndroidManifest.xml
-          sed -i 's|minSdk = flutter.minSdkVersion|minSdk = 24|' android/app/build.gradle*
-      - name: Check manifest
-        run: |
-          cat android/app/src/main/AndroidManifest.xml
-          grep -q "APPLICATION_ID" android/app/src/main/AndroidManifest.xml
-          grep -q "android.permission.INTERNET" android/app/src/main/AndroidManifest.xml
       - name: Disable lint
         run: |
           sed -i '0,/^android {/s//android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }/' android/app/build.gradle*
