@@ -26,6 +26,10 @@ jobs:
       - name: Disable lint
         run: |
           sed -i '0,/^android {/s//android {\n    lint {\n        checkReleaseBuilds = false\n        abortOnError = false\n    }/' android/app/build.gradle*
+      - name: Download Gujarati font
+        run: |
+          mkdir -p fonts
+          for w in Regular Medium SemiBold Bold; do curl -sSL --fail -o fonts/HindVadodara-$w.ttf https://raw.githubusercontent.com/google/fonts/main/ofl/hindvadodara/HindVadodara-$w.ttf; done
       - run: flutter pub get
       - run: dart run flutter_launcher_icons
       - run: dart run flutter_native_splash:create
