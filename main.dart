@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 const ink = Color(0xFF14110F);
 const gold = Color(0xFFC8941A);
@@ -538,6 +540,7 @@ Future<List<Map<String, String>>> fetch(String col) async {
 class Store extends ChangeNotifier {
   List<Map<String, String>> cs = [], subs = [], posts = [], shorts = [];
   Set<String> saved = {};
+  Set<String> likedShorts = {};
   bool loading = true;
   String? err;
 
@@ -548,6 +551,7 @@ class Store extends ChangeNotifier {
     try {
       final p = await SharedPreferences.getInstance();
       saved = (p.getStringList('saved') ?? []).toSet();
+      likedShorts = (p.getStringList('liked') ?? []).toSet();
       final r = await Future.wait([
         fetch('categories'),
         fetch('subcategories'),
@@ -574,6 +578,47 @@ class Store extends ChangeNotifier {
     final p = await SharedPreferences.getInstance();
     await p.setStringList('saved', saved.toList());
     notifyListeners();
+  }
+
+  // real like count: shared in Firestore, one like per device
+  Future<void> toggleLike(Map<String, String> s) async {
+    final id = s['id']!;
+    final wasLiked = likedShorts.contains(id);
+    final d = wasLiked ? -1 : 1;
+    void apply(int x) {
+      x > 0 ? likedShorts.add(id) : likedShorts.remove(id);
+      final n = (int.tryParse(s['likes'] ?? '0') ?? 0) + x;
+      s['likes'] = (n < 0 ? 0 : n).toString();
+    }
+
+    apply(d);
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList('liked', likedShorts.toList());
+    try {
+      final r = await http.post(Uri.parse('$base:commit'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'writes': [
+              {
+                'transform': {
+                  'document': 'projects/kutchhnusuraj-97c95/databases/(default)/documents/shorts/$id',
+                  'fieldTransforms': [
+                    {
+                      'fieldPath': 'likes',
+                      'increment': {'integerValue': '$d'}
+                    }
+                  ]
+                }
+              }
+            ]
+          }));
+      if (r.statusCode != 200) throw Exception(r.body);
+    } catch (_) {
+      apply(-d);
+      await p.setStringList('liked', likedShorts.toList());
+      notifyListeners();
+    }
   }
 
   String catName(String? id) =>
@@ -652,6 +697,45 @@ Embed? embedOf(String u, {bool auto = false}) {
 WebViewController webFor(String html) => WebViewController()
   ..setJavaScriptMode(JavaScriptMode.unrestricted)
   ..loadHtmlString(html, baseUrl: site);
+
+void shareText(String t) => SharePlus.instance.share(ShareParams(text: t));
+
+class ShortSrc {
+  final String type;
+  final String html;
+  ShortSrc(this.type, this.html);
+}
+
+ShortSrc? shortOf(String u) {
+  final y = RegExp(r'(?:v=|youtu\.be/|shorts/|embed/)([\w-]{11})').firstMatch(u);
+  if (y != null) {
+    final id = y.group(1);
+    return ShortSrc('yt',
+        '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{position:absolute;top:0;left:0;width:100%;height:100%}</style></head><body><div id="p"></div><script src="https://www.youtube.com/iframe_api"></script><script>var pl;function onYouTubeIframeAPIReady(){pl=new YT.Player("p",{width:"100%",height:"100%",videoId:"$id",playerVars:{autoplay:1,controls:0,playsinline:1,rel:0,modestbranding:1,fs:0,iv_load_policy:3,disablekb:1},events:{onReady:function(e){e.target.playVideo();},onStateChange:function(e){if(e.data===0){Ended.postMessage("end");}},onError:function(e){Ended.postMessage("err");}}});}function toggle(){if(!pl)return;var s=pl.getPlayerState();if(s===1){pl.pauseVideo();}else{pl.playVideo();}}</script></body></html>');
+  }
+  if (RegExp(r'\.(mp4|webm|mov)(\?|$)', caseSensitive: false).hasMatch(u) || u.contains('/video/upload/')) {
+    return ShortSrc('video',
+        '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}video{width:100%;height:100%;object-fit:contain}</style></head><body><video id="v" src="$u" autoplay playsinline onended="Ended.postMessage(\'end\')" onerror="Ended.postMessage(\'err\')"></video><script>function toggle(){var v=document.getElementById("v");if(v.paused){v.play();}else{v.pause();}}</script></body></html>');
+  }
+  final ig = RegExp(r'instagram\.com/(p|reel|reels|tv)/([\w-]+)').firstMatch(u);
+  if (ig != null) {
+    final k = ig.group(1) == 'reels' ? 'reel' : ig.group(1);
+    return ShortSrc('ig',
+        '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#w{position:absolute;left:0;right:0;top:0;bottom:0;overflow:hidden}iframe{position:absolute;left:0;top:-58px;width:100%;height:calc(100% + 400px);border:0}</style></head><body><div id="w"><iframe src="https://www.instagram.com/$k/${ig.group(2)}/embed" allow="autoplay; encrypted-media; fullscreen"></iframe></div></body></html>');
+  }
+  return null;
+}
+
+WebViewController shortWeb(ShortSrc s, VoidCallback onEnd) {
+  final c = WebViewController()
+    ..setJavaScriptMode(JavaScriptMode.unrestricted)
+    ..setBackgroundColor(Colors.black)
+    ..addJavaScriptChannel('Ended', onMessageReceived: (_) => onEnd());
+  final p = c.platform;
+  if (p is AndroidWebViewController) p.setMediaPlaybackRequiresUserGesture(false);
+  c.loadHtmlString(s.html, baseUrl: site);
+  return c;
+}
 
 void snack(BuildContext c, String m) =>
     ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(m), duration: const Duration(seconds: 2)));
@@ -819,13 +903,13 @@ class _ShellState extends State<Shell> {
     final pages = [
       const HomeTab(),
       const KutchTab(),
-      const ShortsTab(),
+      ShortsTab(onClose: () => setState(() => tab = 0)),
       const SavedTab(),
       const EpaperTab(),
     ];
     return Scaffold(
       body: pages[tab],
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: tab == 2 ? null : NavigationBar(
         backgroundColor: Colors.white,
         indicatorColor: const Color(0xFFFFDAD6),
         selectedIndex: tab,
@@ -1183,8 +1267,7 @@ class _DetailState extends State<Detail> {
                   icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border, color: red)),
               IconButton(
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: '${p['title'] ?? ''}\n$site'));
-                    snack(context, '\u0A95\u0AC9\u0AAA\u0AC0 \u0AA5\u0AAF\u0AC1\u0A82');
+                    shareText('${p['title'] ?? ''}\n\nKUTCHHNUSURAJ\n$site');
                   },
                   icon: const Icon(Icons.share, color: onSurf)),
             ],
@@ -1242,9 +1325,10 @@ class _DetailState extends State<Detail> {
   }
 }
 
-// ---------- Shorts (9:16, YouTube / Instagram links from admin) ----------
+// ---------- Shorts (full screen, auto play, auto next) ----------
 class ShortsTab extends StatefulWidget {
-  const ShortsTab({super.key});
+  final VoidCallback onClose;
+  const ShortsTab({super.key, required this.onClose});
   @override
   State<ShortsTab> createState() => _ShortsTabState();
 }
@@ -1259,9 +1343,12 @@ class _ShortsTabState extends State<ShortsTab> {
   }
 
   void go(int d) {
-    final n = cur + d;
-    if (n < 0 || n >= store.shorts.length) return;
-    pc.animateToPage(n, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
+    final n = store.shorts.length;
+    if (n == 0 || !pc.hasClients) return;
+    var t = cur + d;
+    if (t >= n) t = 0;
+    if (t < 0) return;
+    pc.animateToPage(t, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
   }
 
   @override
@@ -1274,8 +1361,11 @@ class _ShortsTabState extends State<ShortsTab> {
             body: store.loading
                 ? const Center(child: CircularProgressIndicator(color: red))
                 : list.isEmpty
-                    ? const Center(
-                        child: Text('Haji koi short nathi.', style: TextStyle(color: Colors.white70)))
+                    ? Center(
+                        child: TextButton(
+                            onPressed: widget.onClose,
+                            child: const Text('Haji koi short nathi. Pachha jao.',
+                                style: TextStyle(color: Colors.white70))))
                     : Stack(children: [
                         PageView.builder(
                           scrollDirection: Axis.vertical,
@@ -1290,17 +1380,20 @@ class _ShortsTabState extends State<ShortsTab> {
                               onPrev: () => go(-1)),
                         ),
                         SafeArea(
-                          child: IgnorePointer(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(children: [
-                                const Text('\u0AB6\u0ACB\u0AB0\u0ACD\u0A9F\u0ACD\u0AB8',
-                                    style: TextStyle(
-                                        color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
-                                const SizedBox(width: 10),
-                                badge('KUTCHHNUSURAJ'),
-                              ]),
-                            ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(4, 4, 12, 0),
+                            child: Row(children: [
+                              IconButton(
+                                  onPressed: widget.onClose,
+                                  style: IconButton.styleFrom(backgroundColor: Colors.black38),
+                                  icon: const Icon(Icons.arrow_back, color: Colors.white)),
+                              const SizedBox(width: 8),
+                              const Text('\u0AB6\u0ACB\u0AB0\u0ACD\u0A9F\u0ACD\u0AB8',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                              const SizedBox(width: 10),
+                              badge('KUTCHHNUSURAJ'),
+                            ]),
                           ),
                         ),
                       ]),
@@ -1321,7 +1414,7 @@ class ShortPage extends StatefulWidget {
 
 class _ShortPageState extends State<ShortPage> {
   WebViewController? wc;
-  bool liked = false;
+  ShortSrc? src;
   @override
   void initState() {
     super.initState();
@@ -1336,8 +1429,8 @@ class _ShortPageState extends State<ShortPage> {
   }
 
   void _start() {
-    final e = embedOf(widget.s['url'] ?? '', auto: true);
-    if (e != null) wc = webFor(e.html);
+    src = shortOf(widget.s['url'] ?? '');
+    if (src != null) wc = shortWeb(src!, widget.onNext);
   }
 
   Widget act(IconData i, String label, VoidCallback f, {Color c = Colors.white}) => Padding(
@@ -1347,7 +1440,7 @@ class _ShortPageState extends State<ShortPage> {
               onPressed: f,
               style: IconButton.styleFrom(backgroundColor: Colors.black38),
               icon: Icon(i, color: c, size: 28)),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
         ]),
       );
 
@@ -1355,13 +1448,19 @@ class _ShortPageState extends State<ShortPage> {
   Widget build(BuildContext context) {
     final s = widget.s;
     final cat = store.catName(s['categoryId']);
+    final liked = store.likedShorts.contains(s['id']);
+    final likes = int.tryParse(s['likes'] ?? '0') ?? 0;
+    final bottom = MediaQuery.of(context).padding.bottom;
     return Stack(children: [
       Positioned.fill(
-        child: wc != null
-            ? Padding(
-                padding: const EdgeInsets.only(top: 60, bottom: 0),
-                child: WebViewWidget(controller: wc!))
-            : const Center(child: Icon(Icons.play_circle_outline, color: Colors.white38, size: 80)),
+        child: wc == null
+            ? const Center(child: Icon(Icons.play_circle_outline, color: Colors.white38, size: 80))
+            : (src!.type == 'ig'
+                ? WebViewWidget(controller: wc!)
+                : GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => wc!.runJavaScript('toggle()'),
+                    child: IgnorePointer(child: WebViewWidget(controller: wc!)))),
       ),
       Positioned(
         left: 0,
@@ -1378,38 +1477,39 @@ class _ShortPageState extends State<ShortPage> {
             }
           },
           child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 40, 8, 22),
+            padding: EdgeInsets.fromLTRB(16, 40, 8, 22 + bottom),
             decoration: const BoxDecoration(
                 gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black87])),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-              if (cat.isNotEmpty) badge(cat),
-              const SizedBox(height: 8),
-              Text(s['title'] ?? '',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, height: 1.35)),
-              const SizedBox(height: 6),
-              Text('KUTCHHNUSURAJ \u2022 ${fdate(s['createdAt'])}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            ]),
+                    colors: [Colors.transparent, Colors.black87, Colors.black])),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (cat.isNotEmpty) badge(cat),
+                  const SizedBox(height: 8),
+                  Text(s['title'] ?? '',
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, height: 1.35)),
+                  const SizedBox(height: 6),
+                  Text('KUTCHHNUSURAJ \u2022 ${fdate(s['createdAt'])}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                ]),
           ),
         ),
       ),
       Positioned(
         right: 6,
-        bottom: 40,
+        bottom: 40 + bottom,
         child: Column(children: [
           act(Icons.keyboard_arrow_up, '\u0A89\u0AAA\u0AB0', widget.onPrev),
-          act(liked ? Icons.favorite : Icons.favorite_border, '\u0AAA\u0AB8\u0A82\u0AA6', () => setState(() => liked = !liked),
+          act(liked ? Icons.favorite : Icons.favorite_border, likes > 0 ? '$likes' : '\u0AAA\u0AB8\u0A82\u0AA6',
+              () => store.toggleLike(s),
               c: liked ? redC : Colors.white),
-          act(Icons.share, '\u0AB6\u0AC7\u0AB0', () {
-            Clipboard.setData(ClipboardData(text: s['url'] ?? ''));
-            snack(context, '\u0AB2\u0ABF\u0A82\u0A95 \u0A95\u0AC9\u0AAA\u0AC0 \u0AA5\u0A88');
-          }),
+          act(Icons.share, '\u0AB6\u0AC7\u0AB0', () => shareText('${s['title'] ?? ''}\n${s['url'] ?? ''}\n\nKUTCHHNUSURAJ')),
           act(Icons.keyboard_arrow_down, '\u0AA8\u0AC0\u0A9A\u0AC7', widget.onNext),
         ]),
       ),
