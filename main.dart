@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -20,17 +21,6 @@ void main() {
   }, (e, s) {});
 }
 
-class Ads {
-  static void load() {}
-  static void maybeShow() {}
-}
-
-class AdCard extends StatelessWidget {
-  const AdCard({super.key});
-  @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
-}
-
 class KnsApp extends StatelessWidget {
   const KnsApp({super.key});
   @override
@@ -39,8 +29,9 @@ class KnsApp extends StatelessWidget {
         title: 'Kutchhnusuraj',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: gold),
-          scaffoldBackgroundColor: const Color(0xFFF4F3F0),
+          fontFamily: 'Hind',
+          colorScheme: ColorScheme.fromSeed(seedColor: red),
+          scaffoldBackgroundColor: bgc,
         ),
         home: const Boot(),
       );
@@ -74,7 +65,7 @@ class _BootState extends State<Boot> {
   void _home() {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const Home()));
+        MaterialPageRoute(builder: (_) => const Shell()));
   }
 
   Future<void> _done() async {
@@ -164,7 +155,7 @@ class _LogoSplashState extends State<LogoSplash>
                 curve: Curves.easeIn,
                 builder: (_, v, __) => Opacity(
                     opacity: v,
-                    child: const Text('嗒曕獨喃嵿獩, 嗒椸珌嗒溹嗒距 嗒呧喃� 嗒︵珖嗒多喃€ 嗒栢嗒�',
+                    child: const Text('\u0A95\u0A9A\u0ACD\u0A9B, \u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4 \u0A85\u0AA8\u0AC7 \u0AA6\u0AC7\u0AB6\u0AA8\u0AC0 \u0A96\u0AAC\u0AB0',
                         style: TextStyle(color: Colors.white70, fontSize: 15))),
               ),
             ]),
@@ -251,20 +242,20 @@ class _IntroState extends State<Intro> {
             children: const [
               LogoSplash(),
               Slide(
-                  title: '嗒喃€ 嗒栢嗒�, 嗒忇獣 嗒溹獥喃嵿嗒距獜',
-                  desc: '嗒囙喃嵿嗒苦嗒� 嗒ム珋 嗒曕獨喃嵿獩 嗒膏珌嗒о珋嗒ㄠ 嗒膏嗒距獨嗒距, 嗒む嗒距喃€ 嗒嗒傕嗒ㄠ珋 嗒曕珖嗒熰珖嗒椸喃€ 嗒珌嗒溹 嗒掂嗒傕獨喃�.',
+                  title: '\u0AAC\u0AA7\u0AC0 \u0A96\u0AAC\u0AB0, \u0A8F\u0A95 \u0A9C\u0A97\u0ACD\u0AAF\u0ABE\u0A8F',
+                  desc: '\u0A87\u0AA8\u0ACD\u0AA1\u0ABF\u0AAF\u0ABE \u0AA5\u0AC0 \u0A95\u0A9A\u0ACD\u0A9B \u0AB8\u0AC1\u0AA7\u0AC0\u0AA8\u0ABE \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0, \u0AA4\u0AAE\u0ABE\u0AB0\u0AC0 \u0AAA\u0AB8\u0A82\u0AA6\u0AA8\u0AC0 \u0A95\u0AC7\u0A9F\u0AC7\u0A97\u0AB0\u0AC0 \u0AAE\u0AC1\u0A9C\u0AAC \u0AB5\u0ABE\u0A82\u0A9A\u0ACB.',
                   child: CatPop()),
               Slide(
-                  title: '嗒掂嗒∴嗒珛 嗒溹珌嗒�, 嗒忇嗒嗒� 嗒�',
-                  desc: 'YouTube 嗒呧喃� Instagram 嗒ㄠ 嗒掂嗒∴嗒珛 嗒膏珋嗒о 嗒忇嗒嗒� 嗒珝嗒侧珖 嗒ム嗒� 嗒涏珖.',
+                  title: '\u0AB5\u0ABF\u0AA1\u0ABF\u0AAF\u0ACB \u0A9C\u0AC1\u0A93, \u0A8F\u0AAA\u0AAE\u0ABE\u0A82 \u0A9C',
+                  desc: 'YouTube \u0A85\u0AA8\u0AC7 Instagram \u0AA8\u0ABE \u0AB5\u0ABF\u0AA1\u0ABF\u0AAF\u0ACB \u0AB8\u0AC0\u0AA7\u0ABE \u0A8F\u0AAA\u0AAE\u0ABE\u0A82 \u0AAA\u0ACD\u0AB2\u0AC7 \u0AA5\u0ABE\u0AAF \u0A9B\u0AC7.',
                   child: VideoCards()),
               Slide(
-                  title: '嗒む嗒溹 嗒膏嗒距獨嗒距, 嗒膏珜嗒ム珋 嗒喃囙嗒�',
-                  desc: '嗒ㄠ喃€ 嗒栢嗒� 嗒嗋嗒む 嗒� 嗒む嗒距喃€ 嗒膏珝嗒曕珝嗒班珋嗒� 嗒 嗒︵珖嗒栢嗒� 嗒涏珖.',
+                  title: '\u0AA4\u0ABE\u0A9C\u0ABE \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0, \u0AB8\u0ACC\u0AA5\u0AC0 \u0AAA\u0AB9\u0AC7\u0AB2\u0ABE',
+                  desc: '\u0AA8\u0AB5\u0AC0 \u0A96\u0AAC\u0AB0 \u0A86\u0AB5\u0AA4\u0ABE \u0A9C \u0AA4\u0AAE\u0ABE\u0AB0\u0AC0 \u0AB8\u0ACD\u0A95\u0ACD\u0AB0\u0AC0\u0AA8 \u0AAA\u0AB0 \u0AA6\u0AC7\u0A96\u0ABE\u0AAF \u0A9B\u0AC7.',
                   child: Ticker()),
               Slide(
-                  title: '嗒膏 嗒曕珖嗒熰珖嗒椸喃€嗒ム珋 嗒膏獨喃嬥獰 嗒多珛嗒�',
-                  desc: '嗒曕獨喃嵿獩嗒嗒� 嗒珌嗒�, 嗒獨嗒距獕, 嗒呧獋嗒溹嗒� 嗒溹珖嗒掂 嗒掂嗒膏珝嗒む嗒� 嗒珌嗒溹 嗒膏嗒距獨嗒距 嗒珖嗒赤喃�.',
+                  title: '\u0AB8\u0AAC \u0A95\u0AC7\u0A9F\u0AC7\u0A97\u0AB0\u0AC0\u0AA5\u0AC0 \u0AB8\u0A9A\u0ACB\u0A9F \u0AB6\u0ACB\u0AA7',
+                  desc: '\u0A95\u0A9A\u0ACD\u0A9B\u0AAE\u0ABE\u0A82 \u0AAD\u0AC1\u0A9C, \u0AAD\u0A9A\u0ABE\u0A89, \u0A85\u0A82\u0A9C\u0ABE\u0AB0 \u0A9C\u0AC7\u0AB5\u0ABE \u0AB5\u0ABF\u0AB8\u0ACD\u0AA4\u0ABE\u0AB0 \u0AAE\u0AC1\u0A9C\u0AAC \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0 \u0AAE\u0AC7\u0AB3\u0AB5\u0ACB.',
                   child: SubTree()),
             ],
           ),
@@ -304,7 +295,7 @@ class _IntroState extends State<Intro> {
                     : pc.nextPage(
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.easeInOut),
-                child: Text(i == 4 ? '嗒多喃� 嗒曕喃�' : '嗒嗋獥嗒�',
+                child: Text(i == 4 ? '\u0AB6\u0AB0\u0AC2 \u0A95\u0AB0\u0ACB' : '\u0A86\u0A97\u0AB3',
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ]),
@@ -443,7 +434,7 @@ class Ticker extends StatefulWidget {
 class _TickerState extends State<Ticker> {
   final sc = ScrollController();
   Timer? t;
-  static const items = ['BREAKING', '嗒曕獨喃嵿獩', '嗒椸珌嗒溹嗒距', '嗒囙喃嵿嗒苦嗒�', '嗒曕珝嗒班嗒囙', '嗒珛嗒侧嗒熰嗒曕珝嗒�'];
+  static const items = ['BREAKING', '\u0A95\u0A9A\u0ACD\u0A9B', '\u0A97\u0AC1\u0A9C\u0AB0\u0ABE\u0AA4', '\u0A87\u0AA8\u0ACD\u0AA1\u0ABF\u0AAF\u0ABE', '\u0A95\u0ACD\u0AB0\u0ABE\u0A87\u0AAE', '\u0AAA\u0ACB\u0AB2\u0ABF\u0A9F\u0ABF\u0A95\u0ACD\u0AB8'];
   @override
   void initState() {
     super.initState();
@@ -515,13 +506,21 @@ class SubTree extends StatelessWidget {
         pop(0, chip('KUTCH', big: true)),
         pop(1, const Icon(Icons.keyboard_double_arrow_down, color: gold, size: 40)),
         Wrap(spacing: 10, runSpacing: 10, alignment: WrapAlignment.center, children: [
-          pop(2, chip('嗒珌嗒�')),
-          pop(3, chip('嗒獨嗒距獕')),
-          pop(4, chip('嗒呧獋嗒溹嗒�')),
-          pop(5, chip('嗒嗒傕嗒掂珋')),
+          pop(2, chip('\u0AAD\u0AC1\u0A9C')),
+          pop(3, chip('\u0AAD\u0A9A\u0ABE\u0A89')),
+          pop(4, chip('\u0A85\u0A82\u0A9C\u0ABE\u0AB0')),
+          pop(5, chip('\u0AAE\u0ABE\u0A82\u0AA1\u0AB5\u0AC0')),
         ]),
       ]);
 }
+
+// ---------- Design colors (red / white) ----------
+const red = Color(0xFFB70011);
+const redC = Color(0xFFDC2626);
+const bgc = Color(0xFFFAF8FF);
+const onSurf = Color(0xFF131B2E);
+const outV = Color(0xFFE6BDB8);
+const muted = Color(0xFF5C403C);
 
 // ---------- Data (Firestore REST, public read) ----------
 Future<List<Map<String, String>>> fetch(String col) async {
@@ -536,159 +535,54 @@ Future<List<Map<String, String>>> fetch(String col) async {
   }).toList();
 }
 
-class Home extends StatefulWidget {
-  const Home({super.key});
-  @override
-  State<Home> createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  List<Map<String, String>> cs = [], subs = [], posts = [];
+class Store extends ChangeNotifier {
+  List<Map<String, String>> cs = [], subs = [], posts = [], shorts = [];
+  Set<String> saved = {};
   bool loading = true;
-  String? err, cat, sub;
-  @override
-  void initState() {
-    super.initState();
-    load();
-  }
+  String? err;
 
   Future<void> load() async {
-    setState(() {
-      loading = true;
-      err = null;
-    });
+    loading = true;
+    err = null;
+    notifyListeners();
     try {
-      final r = await Future.wait([fetch('categories'), fetch('subcategories'), fetch('posts')]);
-      cs = r[0]
-        ..sort((a, b) => (int.tryParse(a['order'] ?? '0') ?? 0)
-            .compareTo(int.tryParse(b['order'] ?? '0') ?? 0));
+      final p = await SharedPreferences.getInstance();
+      saved = (p.getStringList('saved') ?? []).toSet();
+      final r = await Future.wait([
+        fetch('categories'),
+        fetch('subcategories'),
+        fetch('posts'),
+        fetch('shorts').catchError((_) => <Map<String, String>>[]),
+      ]);
+      int ord(Map<String, String> m) => int.tryParse(m['order'] ?? '0') ?? 0;
+      int newer(Map<String, String> a, Map<String, String> b) =>
+          (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? '');
+      cs = r[0]..sort((a, b) => ord(a).compareTo(ord(b)));
       subs = r[1];
-      posts = r[2]..sort((a, b) => (b['createdAt'] ?? '').compareTo(a['createdAt'] ?? ''));
+      bool live(Map<String, String> m) => (m['status'] ?? 'approved') == 'approved';
+      posts = r[2].where(live).toList()..sort(newer);
+      shorts = r[3].where(live).toList()..sort(newer);
     } catch (e) {
       err = 'Data load na thayo. Internet check karo.';
     }
-    if (mounted) setState(() => loading = false);
+    loading = false;
+    notifyListeners();
+  }
+
+  Future<void> toggleSave(String id) async {
+    saved.contains(id) ? saved.remove(id) : saved.add(id);
+    final p = await SharedPreferences.getInstance();
+    await p.setStringList('saved', saved.toList());
+    notifyListeners();
   }
 
   String catName(String? id) =>
       cs.firstWhere((c) => c['id'] == id, orElse: () => {'name': ''})['name'] ?? '';
-
-  @override
-  Widget build(BuildContext context) {
-    final list = posts
-        .where((p) =>
-            (cat == null || p['categoryId'] == cat) &&
-            (sub == null || p['subCategoryId'] == sub))
-        .toList();
-    final subList = subs.where((s) => s['categoryId'] == cat).toList();
-    final rows = <int>[];
-    for (int k = 0; k < list.length; k++) {
-      rows.add(k);
-      if ((k + 1) % 4 == 0) rows.add(-1);
-    }
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: ink,
-        title: Row(children: [
-          Container(
-              width: 34,
-              height: 34,
-              padding: const EdgeInsets.all(3),
-              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-              child: Image.asset('logo.png')),
-          const SizedBox(width: 10),
-          const Text('KUTCHHNUSURAJ',
-              style: TextStyle(color: gold, fontWeight: FontWeight.w800, letterSpacing: 1)),
-        ]),
-        actions: [
-          IconButton(onPressed: load, icon: const Icon(Icons.refresh, color: Colors.white))
-        ],
-      ),
-      body: Column(children: [
-        if (!loading && err == null)
-          NewsTicker(
-            items: posts.take(8).toList(),
-            onTap: (p) => Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => Detail(p: p, cat: catName(p['categoryId'])))),
-          ),
-        SizedBox(
-          height: 52,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            children: [
-              chip('ALL', cat == null, () => setState(() {
-                    cat = null;
-                    sub = null;
-                  })),
-              for (final c in cs)
-                chip(c['name'] ?? '', cat == c['id'], () => setState(() {
-                      cat = c['id'];
-                      sub = null;
-                    })),
-            ],
-          ),
-        ),
-        if (subList.isNotEmpty)
-          SizedBox(
-            height: 46,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              children: [
-                for (final s in subList)
-                  chip(s['name'] ?? '', sub == s['id'],
-                      () => setState(() => sub = sub == s['id'] ? null : s['id'])),
-              ],
-            ),
-          ),
-        Expanded(
-          child: loading
-              ? const Center(child: CircularProgressIndicator(color: gold))
-              : err != null
-                  ? Center(child: Text(err!))
-                  : RefreshIndicator(
-                      onRefresh: load,
-                      child: list.isEmpty
-                          ? ListView(children: const [
-                              SizedBox(height: 120),
-                              Center(child: Text('Haji koi news nathi.'))
-                            ])
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(12),
-                              itemCount: rows.length,
-                              itemBuilder: (_, r) {
-                                final i = rows[r];
-                                if (i < 0) return const AdCard();
-                                return NewsCard(
-                                    big: i == 0,
-                                    p: list[i],
-                                    cat: catName(list[i]['categoryId']),
-                                    onTap: () {
-                                      Ads.maybeShow();
-                                      Navigator.of(context).push(MaterialPageRoute(
-                                          builder: (_) => Detail(
-                                              p: list[i], cat: catName(list[i]['categoryId']))));
-                                    });
-                              }),
-                    ),
-        ),
-      ]),
-    );
-  }
-
-  Widget chip(String label, bool on, VoidCallback f) => Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: ChoiceChip(
-          label: Text(label,
-              style: TextStyle(fontWeight: FontWeight.w700, color: on ? ink : Colors.black87)),
-          selected: on,
-          selectedColor: gold,
-          onSelected: (_) => f(),
-        ),
-      );
 }
 
+final store = Store();
+
+// ---------- Helpers ----------
 String fdate(String? iso) {
   final d = DateTime.tryParse(iso ?? '');
   if (d == null) return '';
@@ -708,11 +602,11 @@ List<String> imgsOf(Map<String, String> p) {
 }
 
 Widget badge(String t) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: gold, borderRadius: BorderRadius.circular(4)),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(color: red, borderRadius: BorderRadius.circular(4)),
       child: Text(t,
           style: const TextStyle(
-              color: ink, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: .8)),
+              color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .6)),
     );
 
 Widget netImg(String u) => ClipRRect(
@@ -726,34 +620,410 @@ Widget netImg(String u) => ClipRRect(
               : Container(
                   height: 200,
                   color: Colors.black12,
-                  child: const Center(
-                      child: CircularProgressIndicator(color: gold, strokeWidth: 2)))),
+                  child: const Center(child: CircularProgressIndicator(color: red, strokeWidth: 2)))),
     );
 
+class Embed {
+  final String html;
+  final double ratio;
+  Embed(this.html, this.ratio);
+}
+
+String frame(String src) =>
+    '<html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
+    '<style>html,body{margin:0;height:100%;background:#000}iframe{width:100%;height:100%;border:0}</style></head>'
+    '<body><iframe src="$src" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></body></html>';
+
+Embed? embedOf(String u, {bool auto = false}) {
+  final y = RegExp(r'(?:v=|youtu\.be/|shorts/|embed/)([\w-]{11})').firstMatch(u);
+  if (y != null) {
+    final id = y.group(1);
+    final extra = auto ? '&autoplay=1&mute=1&loop=1&playlist=$id' : '';
+    return Embed(frame('https://www.youtube.com/embed/$id?playsinline=1&rel=0$extra'), .5625);
+  }
+  final ig = RegExp(r'instagram\.com/(p|reel|reels|tv)/([\w-]+)').firstMatch(u);
+  if (ig != null) {
+    final k = ig.group(1) == 'reels' ? 'reel' : ig.group(1);
+    return Embed(frame('https://www.instagram.com/$k/${ig.group(2)}/embed'), 1.5);
+  }
+  return null;
+}
+
+WebViewController webFor(String html) => WebViewController()
+  ..setJavaScriptMode(JavaScriptMode.unrestricted)
+  ..loadHtmlString(html, baseUrl: site);
+
+void snack(BuildContext c, String m) =>
+    ScaffoldMessenger.of(c).showSnackBar(SnackBar(content: Text(m), duration: const Duration(seconds: 2)));
+
+void openPost(BuildContext c, Map<String, String> p) =>
+    Navigator.of(c).push(MaterialPageRoute(builder: (_) => Detail(p: p)));
+
+PreferredSizeWidget kAppBar() => AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 0,
+      titleSpacing: 12,
+      title: Row(children: [
+        Container(
+            width: 34,
+            height: 34,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+                color: Colors.white, shape: BoxShape.circle, border: Border.all(color: outV)),
+            child: Image.asset('logo.png')),
+        const SizedBox(width: 10),
+        const Text('KUTCHHNUSURAJ',
+            style: TextStyle(color: red, fontWeight: FontWeight.w800, letterSpacing: .5, fontSize: 18)),
+        const SizedBox(width: 8),
+        Pulse(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(color: redC, borderRadius: BorderRadius.circular(4)),
+            child: const Text('LIVE',
+                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+          ),
+        ),
+      ]),
+      actions: [
+        IconButton(onPressed: store.load, icon: const Icon(Icons.refresh, color: onSurf))
+      ],
+      bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, color: outV.withOpacity(.5))),
+    );
+
+class Pill extends StatelessWidget {
+  final String t;
+  final bool on;
+  final VoidCallback f;
+  const Pill(this.t, this.on, this.f, {super.key});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: f,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+              color: on ? red : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: on ? red : outV)),
+          child: Text(t,
+              style: TextStyle(
+                  color: on ? Colors.white : onSurf, fontWeight: FontWeight.w700, fontSize: 14)),
+        ),
+      );
+}
+
+Widget feed(BuildContext context, List<Map<String, String>> list,
+    {String empty = 'Haji koi news nathi.'}) {
+  if (store.loading) return const Center(child: CircularProgressIndicator(color: red));
+  if (store.err != null) return Center(child: Text(store.err!));
+  return RefreshIndicator(
+    color: red,
+    onRefresh: store.load,
+    child: list.isEmpty
+        ? ListView(children: [const SizedBox(height: 120), Center(child: Text(empty))])
+        : ListView.builder(
+            padding: const EdgeInsets.all(14),
+            itemCount: list.length,
+            itemBuilder: (_, i) => NewsCard(p: list[i], big: i == 0)),
+  );
+}
+
+// ---------- Breaking ticker ----------
+class Breaking extends StatefulWidget {
+  final List<Map<String, String>> items;
+  const Breaking({super.key, required this.items});
+  @override
+  State<Breaking> createState() => _BreakingState();
+}
+
+class _BreakingState extends State<Breaking> {
+  final sc = ScrollController();
+  Timer? t;
+  @override
+  void initState() {
+    super.initState();
+    t = Timer.periodic(const Duration(milliseconds: 30), (_) {
+      if (sc.hasClients) sc.jumpTo(sc.offset + 1.2);
+    });
+  }
+
+  @override
+  void dispose() {
+    t?.cancel();
+    sc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final it = widget.items;
+    if (it.isEmpty) return const SizedBox.shrink();
+    return Container(
+      height: 38,
+      color: redC,
+      child: Row(children: [
+        Container(
+          color: const Color(0xFF93000B),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          alignment: Alignment.center,
+          child: const Text('\u0AAC\u0ACD\u0AB0\u0AC7\u0A95\u0ABF\u0A82\u0A97',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+        ),
+        Expanded(
+          child: ListView.builder(
+            controller: sc,
+            scrollDirection: Axis.horizontal,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (_, i) {
+              final p = it[i % it.length];
+              return GestureDetector(
+                onTap: () => openPost(context, p),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Text('\u2022  ${p['title'] ?? ''}',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ---------- Shell with bottom bar ----------
+class Shell extends StatefulWidget {
+  const Shell({super.key});
+  @override
+  State<Shell> createState() => _ShellState();
+}
+
+class _ShellState extends State<Shell> {
+  int tab = 0;
+  @override
+  void initState() {
+    super.initState();
+    store.load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = [
+      const HomeTab(),
+      const KutchTab(),
+      const ShortsTab(),
+      const SavedTab(),
+      const EpaperTab(),
+    ];
+    return Scaffold(
+      body: pages[tab],
+      bottomNavigationBar: NavigationBar(
+        backgroundColor: Colors.white,
+        indicatorColor: const Color(0xFFFFDAD6),
+        selectedIndex: tab,
+        onDestinationSelected: (i) => setState(() => tab = i),
+        destinations: const [
+          NavigationDestination(
+              icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home, color: red), label: '\u0AB9\u0ACB\u0AAE'),
+          NavigationDestination(
+              icon: Icon(Icons.location_on_outlined),
+              selectedIcon: Icon(Icons.location_on, color: red),
+              label: '\u0A95\u0A9A\u0ACD\u0A9B'),
+          NavigationDestination(
+              icon: Icon(Icons.play_circle_outline),
+              selectedIcon: Icon(Icons.play_circle, color: red),
+              label: '\u0AB6\u0ACB\u0AB0\u0ACD\u0A9F\u0ACD\u0AB8'),
+          NavigationDestination(
+              icon: Icon(Icons.bookmark_border),
+              selectedIcon: Icon(Icons.bookmark, color: red),
+              label: '\u0AB8\u0ABE\u0A9A\u0AB5\u0AC7\u0AB2'),
+          NavigationDestination(
+              icon: Icon(Icons.newspaper_outlined),
+              selectedIcon: Icon(Icons.newspaper, color: red),
+              label: '\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0'),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------- Home ----------
+class HomeTab extends StatefulWidget {
+  const HomeTab({super.key});
+  @override
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  String? cat;
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: store,
+        builder: (_, __) {
+          final list = store.posts.where((p) => cat == null || p['categoryId'] == cat).toList();
+          return Scaffold(
+            backgroundColor: bgc,
+            appBar: kAppBar(),
+            body: Column(children: [
+              if (!store.loading && store.err == null)
+                Breaking(items: store.posts.take(8).toList()),
+              SizedBox(
+                height: 56,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+                  children: [
+                    Pill('\u0AAC\u0AA7\u0ABE \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0', cat == null, () => setState(() => cat = null)),
+                    for (final c in store.cs)
+                      Pill(c['name'] ?? '', cat == c['id'], () => setState(() => cat = c['id'])),
+                  ],
+                ),
+              ),
+              Expanded(child: feed(context, list)),
+            ]),
+          );
+        },
+      );
+}
+
+// ---------- Kutch hub ----------
+class KutchTab extends StatefulWidget {
+  const KutchTab({super.key});
+  @override
+  State<KutchTab> createState() => _KutchTabState();
+}
+
+class _KutchTabState extends State<KutchTab> {
+  String? sub;
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: store,
+        builder: (_, __) {
+          final kid = store.cs.firstWhere((c) => (c['name'] ?? '').toUpperCase() == 'KUTCH',
+              orElse: () => {'id': 'kutch'})['id'];
+          final talukas = store.subs.where((s) => s['categoryId'] == kid).toList();
+          final list = store.posts
+              .where((p) => p['categoryId'] == kid && (sub == null || p['subCategoryId'] == sub))
+              .toList();
+          return Scaffold(
+            backgroundColor: bgc,
+            appBar: kAppBar(),
+            body: Column(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Row(children: [
+                  const Text('\u0AA4\u0ABE\u0AB2\u0AC1\u0A95\u0ABE \u0AAA\u0AB8\u0A82\u0AA6 \u0A95\u0AB0\u0ACB',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: onSurf)),
+                  const Spacer(),
+                  Text('${talukas.length} \u0AA4\u0ABE\u0AB2\u0AC1\u0A95\u0ABE', style: const TextStyle(color: muted)),
+                ]),
+              ),
+              SizedBox(
+                height: 56,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
+                  children: [
+                    Pill('\u0AB8\u0AAE\u0A97\u0ACD\u0AB0 \u0A95\u0A9A\u0ACD\u0A9B', sub == null, () => setState(() => sub = null)),
+                    for (final s in talukas)
+                      Pill(s['name'] ?? '', sub == s['id'], () => setState(() => sub = s['id'])),
+                  ],
+                ),
+              ),
+              Expanded(child: feed(context, list, empty: 'Aa taluka ni haji koi news nathi.')),
+            ]),
+          );
+        },
+      );
+}
+
+// ---------- Saved ----------
+class SavedTab extends StatelessWidget {
+  const SavedTab({super.key});
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: store,
+        builder: (_, __) {
+          final list = store.posts.where((p) => store.saved.contains(p['id'])).toList();
+          return Scaffold(
+            backgroundColor: bgc,
+            appBar: kAppBar(),
+            body: Column(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                child: Row(children: [
+                  const Text('\u0AB8\u0ABE\u0A9A\u0AB5\u0AC7\u0AB2\u0ABE \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: onSurf)),
+                  const Spacer(),
+                  Text('${list.length} \u0AB2\u0AC7\u0A96\u0ACB', style: const TextStyle(color: muted)),
+                ]),
+              ),
+              Expanded(
+                  child: feed(context, list,
+                      empty: 'Koi news save nathi. News ma bookmark nishan dabavo.')),
+            ]),
+          );
+        },
+      );
+}
+
+// ---------- E-paper (next step) ----------
+class EpaperTab extends StatelessWidget {
+  const EpaperTab({super.key});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: bgc,
+        appBar: kAppBar(),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(30),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.newspaper, size: 70, color: red),
+              SizedBox(height: 16),
+              Text('\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: onSurf)),
+              SizedBox(height: 8),
+              Text('\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0 \u0AB0\u0AC0\u0AA1\u0AB0 \u0A9F\u0AC2\u0A82\u0A95 \u0AB8\u0AAE\u0AAF\u0AAE\u0ABE\u0A82 \u0A86\u0AB5\u0AC0 \u0AB0\u0AB9\u0ACD\u0AAF\u0AC1\u0A82 \u0A9B\u0AC7.',
+                  textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 16)),
+            ]),
+          ),
+        ),
+      );
+}
+
+// ---------- News card ----------
 class NewsCard extends StatelessWidget {
   final Map<String, String> p;
-  final String cat;
-  final VoidCallback onTap;
   final bool big;
-  const NewsCard(
-      {super.key, required this.p, required this.cat, required this.onTap, this.big = false});
+  const NewsCard({super.key, required this.p, this.big = false});
   @override
   Widget build(BuildContext context) {
     final imgs = imgsOf(p);
     final hasVideo = (p['videoUrl'] ?? '').isNotEmpty;
+    final cat = store.catName(p['categoryId']);
     final desc = (p['description'] ?? '').replaceAll(RegExp(r'\[img\d+\]'), '').trim();
+    final saved = store.saved.contains(p['id']);
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: outV.withOpacity(.5)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(.08), blurRadius: 12, offset: const Offset(0, 4))
+          BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10, offset: const Offset(0, 3))
         ],
       ),
       child: InkWell(
-        onTap: onTap,
+        onTap: () => openPost(context, p),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (imgs.isNotEmpty)
             Stack(children: [
@@ -762,15 +1032,8 @@ class NewsCard extends StatelessWidget {
                 child: Image.network(imgs.first,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: ink)),
+                    errorBuilder: (_, __, ___) => Container(color: Colors.black12)),
               ),
-              Positioned.fill(
-                  child: DecoratedBox(
-                      decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                              begin: Alignment.center,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black.withOpacity(.45)])))),
               Positioned(left: 12, top: 12, child: badge(cat)),
               if (hasVideo)
                 const Positioned.fill(
@@ -782,8 +1045,8 @@ class NewsCard extends StatelessWidget {
                     bottom: 10,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                          color: Colors.black54, borderRadius: BorderRadius.circular(10)),
+                      decoration:
+                          BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(10)),
                       child: Row(children: [
                         const Icon(Icons.photo_library, color: Colors.white, size: 14),
                         const SizedBox(width: 4),
@@ -793,31 +1056,41 @@ class NewsCard extends StatelessWidget {
                     )),
             ]),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (imgs.isEmpty) ...[badge(cat), const SizedBox(height: 10)],
-              Text(p['title'] ?? '',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: big ? 22 : 19, fontWeight: FontWeight.w800, height: 1.3)),
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(p['title'] ?? '',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: big ? 22 : 18,
+                        fontWeight: FontWeight.w800,
+                        height: 1.3,
+                        color: onSurf)),
+              ),
               if (desc.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text(desc,
-                    maxLines: big ? 3 : 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.black54, fontSize: 15, height: 1.45)),
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(desc,
+                      maxLines: big ? 3 : 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: muted, fontSize: 15, height: 1.45)),
+                ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Row(children: [
-                const Icon(Icons.access_time, size: 15, color: Colors.black45),
+                const Icon(Icons.access_time, size: 15, color: muted),
                 const SizedBox(width: 5),
-                Text(fdate(p['createdAt']),
-                    style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                Text(fdate(p['createdAt']), style: const TextStyle(color: muted, fontSize: 13)),
                 const Spacer(),
-                const Text('嗒掂嗒傕獨喃� ',
-                    style: TextStyle(color: gold, fontWeight: FontWeight.w800)),
-                const Icon(Icons.arrow_forward, size: 16, color: gold),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => store.toggleSave(p['id']!),
+                  icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border, color: red),
+                ),
               ]),
             ]),
           ),
@@ -827,10 +1100,10 @@ class NewsCard extends StatelessWidget {
   }
 }
 
+// ---------- Article detail ----------
 class Detail extends StatefulWidget {
   final Map<String, String> p;
-  final String cat;
-  const Detail({super.key, required this.p, required this.cat});
+  const Detail({super.key, required this.p});
   @override
   State<Detail> createState() => _DetailState();
 }
@@ -838,28 +1111,14 @@ class Detail extends StatefulWidget {
 class _DetailState extends State<Detail> {
   WebViewController? wc;
   double ratio = .5625;
-  String frame(String src) =>
-      '<html><head><meta name="viewport" content="width=device-width,initial-scale=1">'
-      '<style>html,body{margin:0;height:100%;background:#000}iframe{width:100%;height:100%;border:0}</style></head>'
-      '<body><iframe src="$src" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></body></html>';
+  double fs = 18;
   @override
   void initState() {
     super.initState();
-    final u = widget.p['videoUrl'] ?? '';
-    String? html;
-    final y = RegExp(r'(?:v=|youtu\.be/|shorts/|embed/)([\w-]{11})').firstMatch(u);
-    final ig = RegExp(r'instagram\.com/(p|reel|reels|tv)/([\w-]+)').firstMatch(u);
-    if (y != null) {
-      html = frame('https://www.youtube.com/embed/${y.group(1)}?playsinline=1&rel=0');
-    } else if (ig != null) {
-      final k = ig.group(1) == 'reels' ? 'reel' : ig.group(1);
-      ratio = 1.5;
-      html = frame('https://www.instagram.com/$k/${ig.group(2)}/embed');
-    }
-    if (html != null) {
-      wc = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..loadHtmlString(html, baseUrl: site);
+    final e = embedOf(widget.p['videoUrl'] ?? '');
+    if (e != null) {
+      ratio = e.ratio;
+      wc = webFor(e.html);
     }
   }
 
@@ -895,7 +1154,7 @@ class _DetailState extends State<Detail> {
         if (n >= 1 && n <= imgs.length) body.add(imgBlock(imgs[n - 1]));
         continue;
       }
-      body.add(Text(s, style: const TextStyle(fontSize: 18, height: 1.7)));
+      body.add(Text(s, style: TextStyle(fontSize: fs, height: 1.7, color: onSurf)));
       body.add(const SizedBox(height: 8));
       if (fi < free.length) {
         body.add(imgBlock(imgs[free[fi] - 1]));
@@ -906,128 +1165,254 @@ class _DetailState extends State<Detail> {
       body.add(imgBlock(imgs[free[fi] - 1]));
       fi++;
     }
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-          backgroundColor: ink,
-          iconTheme: const IconThemeData(color: Colors.white),
-          title: const Text('KUTCHHNUSURAJ',
-              style: TextStyle(color: gold, fontWeight: FontWeight.w800, letterSpacing: 1))),
-      body: ListView(children: [
-        if (wc != null)
-          SizedBox(height: w * ratio, child: WebViewWidget(controller: wc!))
-        else if (imgs.isNotEmpty)
-          Image.network(imgs.first,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 40),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            badge(widget.cat),
-            const SizedBox(height: 12),
-            Text(p['title'] ?? '',
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.3)),
-            const SizedBox(height: 14),
-            Row(children: [
-              Container(
-                  width: 30,
-                  height: 30,
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: gold)),
-                  child: Image.asset('logo.png')),
-              const SizedBox(width: 10),
-              const Text('KUTCHHNUSURAJ',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-              const Text('  鈥�  ', style: TextStyle(color: Colors.black38)),
-              Text(fdate(p['createdAt']),
-                  style: const TextStyle(color: Colors.black54, fontSize: 13)),
-            ]),
-            const SizedBox(height: 14),
-            Container(height: 3, width: 60, color: gold),
-            const SizedBox(height: 18),
-            ...body,
+    return ListenableBuilder(
+      listenable: store,
+      builder: (_, __) {
+        final saved = store.saved.contains(p['id']);
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            iconTheme: const IconThemeData(color: onSurf),
+            title: const Text('KUTCHHNUSURAJ',
+                style: TextStyle(color: red, fontWeight: FontWeight.w800, fontSize: 17)),
+            actions: [
+              IconButton(
+                  onPressed: () => store.toggleSave(p['id']!),
+                  icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border, color: red)),
+              IconButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: '${p['title'] ?? ''}\n$site'));
+                    snack(context, '\u0A95\u0AC9\u0AAA\u0AC0 \u0AA5\u0AAF\u0AC1\u0A82');
+                  },
+                  icon: const Icon(Icons.share, color: onSurf)),
+            ],
+          ),
+          body: ListView(children: [
+            if (wc != null)
+              SizedBox(height: w * ratio, child: WebViewWidget(controller: wc!))
+            else if (imgs.isNotEmpty)
+              Image.network(imgs.first,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 40),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                badge(store.catName(p['categoryId'])),
+                const SizedBox(height: 12),
+                Text(p['title'] ?? '',
+                    style: const TextStyle(
+                        fontSize: 26, fontWeight: FontWeight.w800, height: 1.3, color: onSurf)),
+                const SizedBox(height: 14),
+                Row(children: [
+                  Container(
+                      width: 30,
+                      height: 30,
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: red)),
+                      child: Image.asset('logo.png')),
+                  const SizedBox(width: 10),
+                  const Text('KUTCHHNUSURAJ',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  const Text('  \u2022  ', style: TextStyle(color: Colors.black38)),
+                  Text(fdate(p['createdAt']), style: const TextStyle(color: muted, fontSize: 13)),
+                  const Spacer(),
+                  TextButton(
+                      onPressed: () => setState(() => fs = fs > 14 ? fs - 2 : fs),
+                      child: const Text('A-', style: TextStyle(color: red, fontWeight: FontWeight.w800))),
+                  TextButton(
+                      onPressed: () => setState(() => fs = fs < 28 ? fs + 2 : fs),
+                      child: const Text('A+', style: TextStyle(color: red, fontWeight: FontWeight.w800))),
+                ]),
+                const SizedBox(height: 10),
+                Container(height: 3, width: 60, color: red),
+                const SizedBox(height: 18),
+                ...body,
+              ]),
+            ),
           ]),
-        ),
-      ]),
+        );
+      },
     );
   }
 }
 
-// ---------- Latest news ticker (Home) ----------
-class NewsTicker extends StatefulWidget {
-  final List<Map<String, String>> items;
-  final void Function(Map<String, String>) onTap;
-  const NewsTicker({super.key, required this.items, required this.onTap});
+// ---------- Shorts (9:16, YouTube / Instagram links from admin) ----------
+class ShortsTab extends StatefulWidget {
+  const ShortsTab({super.key});
   @override
-  State<NewsTicker> createState() => _NewsTickerState();
+  State<ShortsTab> createState() => _ShortsTabState();
 }
 
-class _NewsTickerState extends State<NewsTicker> {
-  final sc = ScrollController();
-  Timer? t;
-  @override
-  void initState() {
-    super.initState();
-    t = Timer.periodic(const Duration(milliseconds: 30), (_) {
-      if (sc.hasClients) sc.jumpTo(sc.offset + 1.2);
-    });
-  }
-
+class _ShortsTabState extends State<ShortsTab> {
+  final pc = PageController();
+  int cur = 0;
   @override
   void dispose() {
-    t?.cancel();
-    sc.dispose();
+    pc.dispose();
     super.dispose();
   }
 
+  void go(int d) {
+    final n = cur + d;
+    if (n < 0 || n >= store.shorts.length) return;
+    pc.animateToPage(n, duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: store,
+        builder: (_, __) {
+          final list = store.shorts;
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: store.loading
+                ? const Center(child: CircularProgressIndicator(color: red))
+                : list.isEmpty
+                    ? const Center(
+                        child: Text('Haji koi short nathi.', style: TextStyle(color: Colors.white70)))
+                    : Stack(children: [
+                        PageView.builder(
+                          scrollDirection: Axis.vertical,
+                          controller: pc,
+                          itemCount: list.length,
+                          onPageChanged: (i) => setState(() => cur = i),
+                          itemBuilder: (_, i) => ShortPage(
+                              key: ValueKey(list[i]['id']),
+                              s: list[i],
+                              active: i == cur,
+                              onNext: () => go(1),
+                              onPrev: () => go(-1)),
+                        ),
+                        SafeArea(
+                          child: IgnorePointer(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(children: [
+                                const Text('\u0AB6\u0ACB\u0AB0\u0ACD\u0A9F\u0ACD\u0AB8',
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800)),
+                                const SizedBox(width: 10),
+                                badge('KUTCHHNUSURAJ'),
+                              ]),
+                            ),
+                          ),
+                        ),
+                      ]),
+          );
+        },
+      );
+}
+
+class ShortPage extends StatefulWidget {
+  final Map<String, String> s;
+  final bool active;
+  final VoidCallback onNext, onPrev;
+  const ShortPage(
+      {super.key, required this.s, required this.active, required this.onNext, required this.onPrev});
+  @override
+  State<ShortPage> createState() => _ShortPageState();
+}
+
+class _ShortPageState extends State<ShortPage> {
+  WebViewController? wc;
+  bool liked = false;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) _start();
+  }
+
+  @override
+  void didUpdateWidget(ShortPage o) {
+    super.didUpdateWidget(o);
+    if (widget.active && wc == null) _start();
+    if (!widget.active && wc != null) wc = null;
+  }
+
+  void _start() {
+    final e = embedOf(widget.s['url'] ?? '', auto: true);
+    if (e != null) wc = webFor(e.html);
+  }
+
+  Widget act(IconData i, String label, VoidCallback f, {Color c = Colors.white}) => Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(children: [
+          IconButton(
+              onPressed: f,
+              style: IconButton.styleFrom(backgroundColor: Colors.black38),
+              icon: Icon(i, color: c, size: 28)),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+        ]),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final it = widget.items;
-    if (it.isEmpty) return const SizedBox.shrink();
-    return Container(
-      height: 40,
-      color: ink,
-      child: Row(children: [
-        Container(
-          color: const Color(0xFFD32F2F),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          alignment: Alignment.center,
-          child: const Pulse(
-            child: Text('LATEST',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+    final s = widget.s;
+    final cat = store.catName(s['categoryId']);
+    return Stack(children: [
+      Positioned.fill(
+        child: wc != null
+            ? Padding(
+                padding: const EdgeInsets.only(top: 60, bottom: 0),
+                child: WebViewWidget(controller: wc!))
+            : const Center(child: Icon(Icons.play_circle_outline, color: Colors.white38, size: 80)),
+      ),
+      Positioned(
+        left: 0,
+        right: 70,
+        bottom: 0,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragEnd: (d) {
+            final v = d.primaryVelocity ?? 0;
+            if (v < -200) {
+              widget.onNext();
+            } else if (v > 200) {
+              widget.onPrev();
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 40, 8, 22),
+            decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black87])),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+              if (cat.isNotEmpty) badge(cat),
+              const SizedBox(height: 8),
+              Text(s['title'] ?? '',
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700, height: 1.35)),
+              const SizedBox(height: 6),
+              Text('KUTCHHNUSURAJ \u2022 ${fdate(s['createdAt'])}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ]),
           ),
         ),
-        Expanded(
-          child: ListView.builder(
-            controller: sc,
-            scrollDirection: Axis.horizontal,
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (_, i) {
-              final p = it[i % it.length];
-              return GestureDetector(
-                onTap: () => widget.onTap(p),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(children: [
-                      const Icon(Icons.circle, size: 7, color: gold),
-                      const SizedBox(width: 8),
-                      Text(p['title'] ?? '',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ]),
-    );
+      ),
+      Positioned(
+        right: 6,
+        bottom: 40,
+        child: Column(children: [
+          act(Icons.keyboard_arrow_up, '\u0A89\u0AAA\u0AB0', widget.onPrev),
+          act(liked ? Icons.favorite : Icons.favorite_border, '\u0AAA\u0AB8\u0A82\u0AA6', () => setState(() => liked = !liked),
+              c: liked ? redC : Colors.white),
+          act(Icons.share, '\u0AB6\u0AC7\u0AB0', () {
+            Clipboard.setData(ClipboardData(text: s['url'] ?? ''));
+            snack(context, '\u0AB2\u0ABF\u0A82\u0A95 \u0A95\u0AC9\u0AAA\u0AC0 \u0AA5\u0A88');
+          }),
+          act(Icons.keyboard_arrow_down, '\u0AA8\u0AC0\u0A9A\u0AC7', widget.onNext),
+        ]),
+      ),
+    ]);
   }
 }
