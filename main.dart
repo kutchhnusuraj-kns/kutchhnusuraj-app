@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -538,8 +540,49 @@ Future<List<Map<String, String>>> fetch(String col) async {
   }).toList();
 }
 
+const wPlaces = [
+  ('\u0AAD\u0AC1\u0A9C', 23.242, 69.667),
+  ('\u0A97\u0ABE\u0A82\u0AA7\u0AC0\u0AA7\u0ABE\u0AAE', 23.075, 70.134),
+  ('\u0AAE\u0ABE\u0A82\u0AA1\u0AB5\u0AC0', 22.833, 69.350),
+  ('\u0A85\u0A82\u0A9C\u0ABE\u0AB0', 23.113, 70.027),
+  ('\u0AAD\u0A9A\u0ABE\u0A89', 23.290, 70.340),
+  ('\u0AAE\u0AC1\u0AA8\u0ACD\u0AA6\u0ACD\u0AB0\u0ABE', 22.839, 69.722),
+];
+
+String wIcon(int c) => c == 0
+    ? '\u2600\uFE0F'
+    : c <= 3
+        ? '\u26C5'
+        : c <= 48
+            ? '\u{1F32B}\uFE0F'
+            : c <= 67
+                ? '\u{1F327}\uFE0F'
+                : c <= 77
+                    ? '\u2744\uFE0F'
+                    : c <= 82
+                        ? '\u{1F326}\uFE0F'
+                        : '\u26C8\uFE0F';
+
+Future<List<Map<String, String>>> fetchWeather() async {
+  final lat = wPlaces.map((p) => p.$2).join(',');
+  final lon = wPlaces.map((p) => p.$3).join(',');
+  final r = await http.get(Uri.parse(
+      'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&timezone=Asia%2FKolkata'));
+  if (r.statusCode != 200) throw Exception('HTTP ${r.statusCode}');
+  final j = jsonDecode(r.body);
+  final list = j is List ? j : [j];
+  return [
+    for (int i = 0; i < list.length && i < wPlaces.length; i++)
+      {
+        'name': wPlaces[i].$1,
+        'temp': '${(list[i]['current']['temperature_2m'] as num).round()}',
+        'icon': wIcon((list[i]['current']['weather_code'] as num).toInt()),
+      }
+  ];
+}
+
 class Store extends ChangeNotifier {
-  List<Map<String, String>> cs = [], subs = [], posts = [], shorts = [];
+  List<Map<String, String>> cs = [], subs = [], posts = [], shorts = [], weather = [];
   Set<String> saved = {};
   Set<String> likedShorts = {};
   bool loading = true;
@@ -558,6 +601,7 @@ class Store extends ChangeNotifier {
         fetch('subcategories'),
         fetch('posts'),
         fetch('shorts').catchError((_) => <Map<String, String>>[]),
+        fetchWeather().catchError((_) => <Map<String, String>>[]),
       ]);
       int ord(Map<String, String> m) => int.tryParse(m['order'] ?? '0') ?? 0;
       int newer(Map<String, String> a, Map<String, String> b) =>
@@ -567,6 +611,7 @@ class Store extends ChangeNotifier {
       bool live(Map<String, String> m) => (m['status'] ?? 'approved') == 'approved';
       posts = r[2].where(live).toList()..sort(newer);
       shorts = r[3].where(live).toList()..sort(newer);
+      weather = r[4];
     } catch (e) {
       err = 'Data load na thayo. Internet check karo.';
     }
@@ -940,6 +985,38 @@ class _ShellState extends State<Shell> {
   }
 }
 
+class WeatherStrip extends StatelessWidget {
+  final List<Map<String, String>> items;
+  const WeatherStrip({super.key, required this.items});
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 42,
+        color: Colors.white,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          children: [
+            const Center(
+                child: Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: Text('\u0AAE\u0ACC\u0AB8\u0AAE',
+                        style: TextStyle(color: red, fontWeight: FontWeight.w800, fontSize: 13)))),
+            for (final w in items)
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4FA), borderRadius: BorderRadius.circular(14)),
+                  child: Text('${w['name']}  ${w['icon']} ${w['temp']}\u00B0',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: onSurf)),
+                ),
+              ),
+          ],
+        ),
+      );
+}
+
 // ---------- Home ----------
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -968,6 +1045,7 @@ class _HomeTabState extends State<HomeTab> {
             body: Column(children: [
               if (!store.loading && store.err == null)
                 Breaking(items: store.posts.take(8).toList()),
+              if (!store.loading && store.weather.isNotEmpty) WeatherStrip(items: store.weather),
               SizedBox(
                 height: 56,
                 child: ListView(
@@ -1220,6 +1298,10 @@ class EpaperReader extends StatefulWidget {
 class _EpaperReaderState extends State<EpaperReader> {
   final pc = PageController();
   int cur = 0;
+  bool crop = false, busy = false;
+  ui.Image? src;
+  Rect box = Rect.zero;
+  Rect bounds = Rect.zero;
   @override
   void dispose() {
     pc.dispose();
@@ -1233,26 +1315,159 @@ class _EpaperReaderState extends State<EpaperReader> {
     pc.animateToPage(t, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final pages = (widget.e['pages'] as List).cast<String>();
-    return Scaffold(
-      backgroundColor: const Color(0xFF1C1C1C),
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text('${widget.e['title']}',
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-        actions: [
-          IconButton(
-              onPressed: () => openLink('${widget.e['pdf']}'),
-              icon: const Icon(Icons.download, color: Colors.white)),
-          IconButton(
-              onPressed: () => shareText('KUTCHHNUSURAJ ${widget.e['title']}\n${widget.e['pdf']}'),
-              icon: const Icon(Icons.share, color: Colors.white)),
-        ],
-      ),
-      body: Stack(children: [
+  Future<void> startCrop() async {
+    setState(() => busy = true);
+    try {
+      final pages = (widget.e['pages'] as List).cast<String>();
+      final r = await http.get(Uri.parse(pages[cur]));
+      final img = await decodeImageFromList(r.bodyBytes);
+      src = img;
+      box = Rect.zero;
+      crop = true;
+    } catch (_) {
+      if (mounted) snack(context, '\u0AAA\u0ABE\u0AA8\u0AC1\u0A82 \u0AB2\u0ACB\u0AA1 \u0AA8 \u0AA5\u0AAF\u0AC1\u0A82');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  void stopCrop() => setState(() {
+        crop = false;
+        src = null;
+      });
+
+  Rect resize(Rect r, Rect b, {double l = 0, double t = 0, double rt = 0, double bt = 0}) {
+    final L = (r.left + l).clamp(b.left, math.max(b.left, r.right - 60)).toDouble();
+    final T = (r.top + t).clamp(b.top, math.max(b.top, r.bottom - 60)).toDouble();
+    final R = (r.right + rt).clamp(math.min(b.right, L + 60), b.right).toDouble();
+    final B = (r.bottom + bt).clamp(math.min(b.bottom, T + 60), b.bottom).toDouble();
+    return Rect.fromLTRB(L, T, R, B);
+  }
+
+  Rect move(Rect r, Rect b) {
+    var dx = 0.0, dy = 0.0;
+    if (r.left < b.left) dx = b.left - r.left;
+    if (r.right > b.right) dx = b.right - r.right;
+    if (r.top < b.top) dy = b.top - r.top;
+    if (r.bottom > b.bottom) dy = b.bottom - r.bottom;
+    return r.shift(Offset(dx, dy));
+  }
+
+  Future<void> shareClip() async {
+    final s = src;
+    if (s == null) return;
+    setState(() => busy = true);
+    try {
+      final sc = bounds.width / s.width;
+      final sx = (box.left - bounds.left) / sc, sy = (box.top - bounds.top) / sc;
+      final sw = box.width / sc, sh = box.height / sc;
+      final band = math.max(44.0, sw * 0.055);
+      final rec = ui.PictureRecorder();
+      final cv = ui.Canvas(rec);
+      cv.drawRect(Rect.fromLTWH(0, 0, sw, sh + band), Paint()..color = Colors.white);
+      cv.drawImageRect(s, Rect.fromLTWH(sx, sy, sw, sh), Rect.fromLTWH(0, 0, sw, sh),
+          Paint()..filterQuality = FilterQuality.high);
+      cv.drawRect(Rect.fromLTWH(0, sh, sw, band), Paint()..color = red);
+      final tp = TextPainter(
+        text: TextSpan(
+            text: 'KUTCHHNUSURAJ  \u0A88-\u0AAA\u0AC7\u0AAA\u0AB0 \u2022 ${widget.e['title']}',
+            style: TextStyle(
+                color: Colors.white, fontFamily: 'Hind', fontWeight: FontWeight.w700, fontSize: band * 0.42)),
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        ellipsis: '\u2026',
+      )..layout(maxWidth: sw - band * 0.6);
+      tp.paint(cv, Offset(band * 0.3, sh + (band - tp.height) / 2));
+      final out = await rec.endRecording().toImage(sw.round(), (sh + band).round());
+      final bd = await out.toByteData(format: ui.ImageByteFormat.png);
+      final f = File('${Directory.systemTemp.path}/kns_clip_${DateTime.now().millisecondsSinceEpoch}.png');
+      await f.writeAsBytes(bd!.buffer.asUint8List());
+      await SharePlus.instance.share(ShareParams(files: [XFile(f.path)], text: 'KUTCHHNUSURAJ \u0A88-\u0AAA\u0AC7\u0AAA\u0AB0'));
+    } catch (_) {
+      if (mounted) snack(context, '\u0AB6\u0AC7\u0AB0 \u0AA8 \u0AA5\u0AAF\u0AC1\u0A82');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  Widget handle(Offset c, void Function(Offset d) onDrag) => Positioned(
+        left: c.dx - 20,
+        top: c.dy - 20,
+        child: GestureDetector(
+          onPanUpdate: (d) => onDrag(d.delta),
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            color: Colors.transparent,
+            child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                    color: red, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2))),
+          ),
+        ),
+      );
+
+  Widget cropView() => Column(children: [
+        const Padding(
+          padding: EdgeInsets.all(8),
+          child: Text('\u0A96\u0AC2\u0AA3\u0ABE \u0A96\u0AC7\u0A82\u0A9A\u0AC0\u0AA8\u0AC7 \u0AAD\u0ABE\u0A97 \u0AAA\u0AB8\u0A82\u0AA6 \u0A95\u0AB0\u0ACB, \u0AB5\u0A9A\u0ACD\u0A9A\u0AC7 \u0AAA\u0A95\u0AA1\u0AC0\u0AA8\u0AC7 \u0A96\u0AB8\u0AC7\u0AA1\u0ACB',
+              style: TextStyle(color: Colors.white70, fontSize: 13)),
+        ),
+        Expanded(
+          child: LayoutBuilder(builder: (ctx, c) {
+            final s = src!;
+            final iw = s.width.toDouble(), ih = s.height.toDouble();
+            final sc = math.min(c.maxWidth / iw, c.maxHeight / ih);
+            final dw = iw * sc, dh = ih * sc;
+            bounds = Rect.fromLTWH((c.maxWidth - dw) / 2, (c.maxHeight - dh) / 2, dw, dh);
+            if (box == Rect.zero) {
+              box = Rect.fromLTWH(bounds.left + dw * .08, bounds.top + dh * .08, dw * .84, dh * .3);
+            }
+            return Stack(children: [
+              Positioned.fromRect(rect: bounds, child: RawImage(image: s, fit: BoxFit.fill)),
+              Positioned.fromRect(
+                rect: box,
+                child: GestureDetector(
+                  onPanUpdate: (d) => setState(() => box = move(box.shift(d.delta), bounds)),
+                  child: Container(
+                    decoration: BoxDecoration(
+                        border: Border.all(color: red, width: 2), color: red.withOpacity(.12)),
+                  ),
+                ),
+              ),
+              handle(box.topLeft, (d) => setState(() => box = resize(box, bounds, l: d.dx, t: d.dy))),
+              handle(box.topRight, (d) => setState(() => box = resize(box, bounds, rt: d.dx, t: d.dy))),
+              handle(box.bottomLeft, (d) => setState(() => box = resize(box, bounds, l: d.dx, bt: d.dy))),
+              handle(box.bottomRight, (d) => setState(() => box = resize(box, bounds, rt: d.dx, bt: d.dy))),
+            ]);
+          }),
+        ),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white54)),
+                  onPressed: busy ? null : stopCrop,
+                  child: const Text('\u0AB0\u0AA6 \u0A95\u0AB0\u0ACB', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: red),
+                  onPressed: busy ? null : shareClip,
+                  icon: const Icon(Icons.share),
+                  label: const Text('\u0AB6\u0AC7\u0AB0 \u0A95\u0AB0\u0ACB'),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ]);
+
+  Widget readerView(List<String> pages) => Stack(children: [
         PageView.builder(
           controller: pc,
           physics: const NeverScrollableScrollPhysics(),
@@ -1264,9 +1479,8 @@ class _EpaperReaderState extends State<EpaperReader> {
             child: Center(
               child: Image.network(pages[i],
                   fit: BoxFit.contain,
-                  loadingBuilder: (c, w, pr) => pr == null
-                      ? w
-                      : const Center(child: CircularProgressIndicator(color: red)),
+                  loadingBuilder: (c, w, pr) =>
+                      pr == null ? w : const Center(child: CircularProgressIndicator(color: red)),
                   errorBuilder: (_, __, ___) =>
                       const Icon(Icons.broken_image, color: Colors.white54, size: 60)),
             ),
@@ -1293,6 +1507,182 @@ class _EpaperReaderState extends State<EpaperReader> {
                 style: IconButton.styleFrom(backgroundColor: Colors.black54),
                 icon: const Icon(Icons.chevron_right, color: Colors.white)),
           ]),
+        ),
+      ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = (widget.e['pages'] as List).cast<String>();
+    return Scaffold(
+      backgroundColor: const Color(0xFF1C1C1C),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('${widget.e['title']}',
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+              tooltip: '\u0A95\u0ABE\u0AAA\u0ACB',
+              onPressed: busy ? null : (crop ? stopCrop : startCrop),
+              icon: Icon(Icons.content_cut, color: crop ? redC : Colors.white)),
+          IconButton(
+              onPressed: () => openLink('${widget.e['pdf']}'),
+              icon: const Icon(Icons.download, color: Colors.white)),
+          IconButton(
+              onPressed: () => shareText('KUTCHHNUSURAJ ${widget.e['title']}\n${widget.e['pdf']}'),
+              icon: const Icon(Icons.share, color: Colors.white)),
+        ],
+        bottom: busy
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(3),
+                child: LinearProgressIndicator(color: red, backgroundColor: Colors.black, minHeight: 3))
+            : null,
+      ),
+      body: crop && src != null ? cropView() : readerView(pages),
+    );
+  }
+}
+
+// ---------- Share card (image for WhatsApp etc.) ----------
+class ShareCardPage extends StatefulWidget {
+  final Map<String, String> p;
+  const ShareCardPage({super.key, required this.p});
+  @override
+  State<ShareCardPage> createState() => _ShareCardPageState();
+}
+
+class _ShareCardPageState extends State<ShareCardPage> {
+  final key = GlobalKey();
+  bool busy = false;
+
+  Future<void> send() async {
+    setState(() => busy = true);
+    try {
+      final b = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final img = await b.toImage(pixelRatio: 3);
+      final bd = await img.toByteData(format: ui.ImageByteFormat.png);
+      final f = File('${Directory.systemTemp.path}/kns_share_${DateTime.now().millisecondsSinceEpoch}.png');
+      await f.writeAsBytes(bd!.buffer.asUint8List());
+      await SharePlus.instance
+          .share(ShareParams(files: [XFile(f.path)], text: '${widget.p['title'] ?? ''}\n\nKUTCHHNUSURAJ'));
+    } catch (_) {
+      if (mounted) snack(context, '\u0AB6\u0AC7\u0AB0 \u0AA8 \u0AA5\u0AAF\u0AC1\u0A82');
+    }
+    if (mounted) setState(() => busy = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.p;
+    final imgs = imgsOf(p);
+    final cat = store.catName(p['categoryId']);
+    final desc = (p['description'] ?? '').replaceAll(RegExp(r'\[img\d+\]'), '').trim();
+    return Scaffold(
+      backgroundColor: const Color(0xFFEDEDF2),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        iconTheme: const IconThemeData(color: onSurf),
+        title: const Text('\u0AB6\u0AC7\u0AB0 \u0A95\u0ABE\u0AB0\u0ACD\u0AA1',
+            style: TextStyle(color: red, fontWeight: FontWeight.w800, fontSize: 18)),
+      ),
+      body: Column(children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: RepaintBoundary(
+                key: key,
+                child: Container(
+                  width: 360,
+                  color: Colors.white,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Container(
+                      color: red,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      child: Row(children: [
+                        Container(
+                            width: 34,
+                            height: 34,
+                            padding: const EdgeInsets.all(2),
+                            decoration:
+                                const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                            child: Image.asset('logo.png')),
+                        const SizedBox(width: 10),
+                        const Text('KUTCHHNUSURAJ',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18,
+                                letterSpacing: .5)),
+                      ]),
+                    ),
+                    if (imgs.isNotEmpty)
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: Image.network(imgs.first,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(color: Colors.black12)),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (cat.isNotEmpty) badge(cat),
+                        const SizedBox(height: 10),
+                        Text(p['title'] ?? '',
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w800, height: 1.3, color: onSurf)),
+                        if (desc.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(desc,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 14, height: 1.5, color: muted)),
+                        ],
+                      ]),
+                    ),
+                    Container(
+                      color: const Color(0xFF14110F),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      child: Row(children: [
+                        const Expanded(
+                          child: Text('\u0AB5\u0AA7\u0AC1 \u0AB5\u0ABF\u0A97\u0AA4 \u0AAE\u0ABE\u0A9F\u0AC7 KUTCHHNUSURAJ \u0A8F\u0AAA',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                        ),
+                        Text(fdate(p['createdAt']),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      ]),
+                    ),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
+                onPressed: busy ? null : send,
+                icon: busy
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                    : const Icon(Icons.share),
+                label: const Text('WhatsApp / \u0AAC\u0AC0\u0A9C\u0AC7 \u0AB6\u0AC7\u0AB0 \u0A95\u0AB0\u0ACB',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+            ),
+          ),
         ),
       ]),
     );
@@ -1483,7 +1873,7 @@ class _DetailState extends State<Detail> {
                   icon: Icon(saved ? Icons.bookmark : Icons.bookmark_border, color: red)),
               IconButton(
                   onPressed: () {
-                    shareText('${p['title'] ?? ''}\n\nKUTCHHNUSURAJ\n$site');
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ShareCardPage(p: p)));
                   },
                   icon: const Icon(Icons.share, color: onSurf)),
             ],
