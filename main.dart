@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
@@ -956,6 +957,14 @@ class _HomeTabState extends State<HomeTab> {
           return Scaffold(
             backgroundColor: bgc,
             appBar: kAppBar(),
+            floatingActionButton: FloatingActionButton.extended(
+              backgroundColor: red,
+              foregroundColor: Colors.white,
+              onPressed: () =>
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SubmitPage())),
+              icon: const Icon(Icons.add),
+              label: const Text('\u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0 \u0AAE\u0ACB\u0A95\u0AB2\u0ACB'),
+            ),
             body: Column(children: [
               if (!store.loading && store.err == null)
                 Breaking(items: store.posts.take(8).toList()),
@@ -1059,28 +1068,235 @@ class SavedTab extends StatelessWidget {
       );
 }
 
-// ---------- E-paper (next step) ----------
-class EpaperTab extends StatelessWidget {
+// ---------- E-paper (auto generated from latest news) ----------
+const epaperBase = 'https://kutchhnusuraj-kns.github.io/kutchhnusuraj-epaper';
+
+Future<void> openLink(String u) => launchUrl(Uri.parse(u), mode: LaunchMode.externalApplication);
+
+class EpaperTab extends StatefulWidget {
   const EpaperTab({super.key});
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: bgc,
-        appBar: kAppBar(),
-        body: const Center(
+  State<EpaperTab> createState() => _EpaperTabState();
+}
+
+class _EpaperTabState extends State<EpaperTab> {
+  List<Map<String, dynamic>> eds = [];
+  bool loading = true;
+  String? err;
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  Future<void> load() async {
+    setState(() {
+      loading = true;
+      err = null;
+    });
+    try {
+      final r = await http.get(Uri.parse('$epaperBase/editions.json?t=${DateTime.now().millisecondsSinceEpoch}'));
+      if (r.statusCode != 200) throw Exception('HTTP ${r.statusCode}');
+      final l = (jsonDecode(r.body)['editions'] as List?) ?? [];
+      eds = l.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    } catch (_) {
+      err = '\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0 \u0AB2\u0ACB\u0AA1 \u0AA8 \u0AA5\u0AAF\u0AC1\u0A82. \u0A87\u0AA8\u0ACD\u0A9F\u0AB0\u0AA8\u0AC7\u0A9F \u0AA4\u0AAA\u0ABE\u0AB8\u0ACB.';
+    }
+    if (mounted) setState(() => loading = false);
+  }
+
+  void open(Map<String, dynamic> e) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => EpaperReader(e: e)));
+
+  @override
+  Widget build(BuildContext context) {
+    Widget body;
+    if (loading) {
+      body = const Center(child: CircularProgressIndicator(color: red));
+    } else if (err != null) {
+      body = Center(child: Text(err!));
+    } else if (eds.isEmpty) {
+      body = const Center(
           child: Padding(
-            padding: EdgeInsets.all(30),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.newspaper, size: 70, color: red),
-              SizedBox(height: 16),
-              Text('\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: onSurf)),
-              SizedBox(height: 8),
-              Text('\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0 \u0AB0\u0AC0\u0AA1\u0AB0 \u0A9F\u0AC2\u0A82\u0A95 \u0AB8\u0AAE\u0AAF\u0AAE\u0ABE\u0A82 \u0A86\u0AB5\u0AC0 \u0AB0\u0AB9\u0ACD\u0AAF\u0AC1\u0A82 \u0A9B\u0AC7.',
-                  textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 16)),
+              padding: EdgeInsets.all(30),
+              child: Text('\u0A88-\u0AAA\u0AC7\u0AAA\u0AB0 \u0AB9\u0A9C\u0AC0 \u0AA4\u0AC8\u0AAF\u0ABE\u0AB0 \u0AA8\u0AA5\u0AC0. \u0AA5\u0ACB\u0AA1\u0ABE \u0AB8\u0AAE\u0AAF \u0AAA\u0A9B\u0AC0 \u0A9C\u0AC1\u0A93.',
+                  textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 16))));
+    } else {
+      final e = eds.first;
+      final pages = (e['pages'] as List).cast<String>();
+      body = RefreshIndicator(
+        color: red,
+        onRefresh: load,
+        child: ListView(padding: const EdgeInsets.all(14), children: [
+          const Text('\u0AA4\u0ABE\u0A9C\u0ACB \u0A85\u0A82\u0A95',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: onSurf)),
+          const SizedBox(height: 10),
+          Container(
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: outV.withOpacity(.5)),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              InkWell(
+                onTap: () => open(e),
+                child: AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: Image.network(pages.first,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      errorBuilder: (_, __, ___) => Container(color: Colors.black12)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('${e['title']}',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: onSurf)),
+                  const SizedBox(height: 4),
+                  Text('${e['count']} \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0 \u2022 ${pages.length} \u0AAA\u0ABE\u0AA8\u0ABE',
+                      style: const TextStyle(color: muted, fontSize: 13)),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: red),
+                        onPressed: () => open(e),
+                        icon: const Icon(Icons.menu_book),
+                        label: const Text('\u0AB5\u0ABE\u0A82\u0A9A\u0ACB'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(side: const BorderSide(color: red)),
+                        onPressed: () => openLink('${e['pdf']}'),
+                        icon: const Icon(Icons.picture_as_pdf, color: red),
+                        label: const Text('PDF', style: TextStyle(color: red)),
+                      ),
+                    ),
+                  ]),
+                ]),
+              ),
             ]),
           ),
-        ),
+          if (eds.length > 1) ...[
+            const SizedBox(height: 22),
+            const Text('\u0A9C\u0AC2\u0AA8\u0ABE \u0A85\u0A82\u0A95',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: onSurf)),
+            const SizedBox(height: 6),
+            for (final o in eds.skip(1))
+              Card(
+                color: Colors.white,
+                margin: const EdgeInsets.only(top: 8),
+                child: ListTile(
+                  leading: const Icon(Icons.newspaper, color: red),
+                  title: Text('${o['title']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('${o['count']} \u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0'),
+                  trailing: IconButton(
+                      icon: const Icon(Icons.picture_as_pdf, color: red),
+                      onPressed: () => openLink('${o['pdf']}')),
+                  onTap: () => open(o),
+                ),
+              ),
+          ],
+          const SizedBox(height: 30),
+        ]),
       );
+    }
+    return Scaffold(backgroundColor: bgc, appBar: kAppBar(), body: body);
+  }
+}
+
+class EpaperReader extends StatefulWidget {
+  final Map<String, dynamic> e;
+  const EpaperReader({super.key, required this.e});
+  @override
+  State<EpaperReader> createState() => _EpaperReaderState();
+}
+
+class _EpaperReaderState extends State<EpaperReader> {
+  final pc = PageController();
+  int cur = 0;
+  @override
+  void dispose() {
+    pc.dispose();
+    super.dispose();
+  }
+
+  void go(int d) {
+    final n = (widget.e['pages'] as List).length;
+    final t = cur + d;
+    if (t < 0 || t >= n) return;
+    pc.animateToPage(t, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = (widget.e['pages'] as List).cast<String>();
+    return Scaffold(
+      backgroundColor: const Color(0xFF1C1C1C),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text('${widget.e['title']}',
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+        actions: [
+          IconButton(
+              onPressed: () => openLink('${widget.e['pdf']}'),
+              icon: const Icon(Icons.download, color: Colors.white)),
+          IconButton(
+              onPressed: () => shareText('KUTCHHNUSURAJ ${widget.e['title']}\n${widget.e['pdf']}'),
+              icon: const Icon(Icons.share, color: Colors.white)),
+        ],
+      ),
+      body: Stack(children: [
+        PageView.builder(
+          controller: pc,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: pages.length,
+          onPageChanged: (i) => setState(() => cur = i),
+          itemBuilder: (_, i) => InteractiveViewer(
+            minScale: 1,
+            maxScale: 5,
+            child: Center(
+              child: Image.network(pages[i],
+                  fit: BoxFit.contain,
+                  loadingBuilder: (c, w, pr) => pr == null
+                      ? w
+                      : const Center(child: CircularProgressIndicator(color: red)),
+                  errorBuilder: (_, __, ___) =>
+                      const Icon(Icons.broken_image, color: Colors.white54, size: 60)),
+            ),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 14,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            IconButton(
+                onPressed: () => go(-1),
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                icon: const Icon(Icons.chevron_left, color: Colors.white)),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
+              child: Text('${cur + 1} / ${pages.length}',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            ),
+            IconButton(
+                onPressed: () => go(1),
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                icon: const Icon(Icons.chevron_right, color: Colors.white)),
+          ]),
+        ),
+      ]),
+    );
+  }
 }
 
 // ---------- News card ----------
@@ -1312,6 +1528,12 @@ class _DetailState extends State<Detail> {
                       onPressed: () => setState(() => fs = fs < 28 ? fs + 2 : fs),
                       child: const Text('A+', style: TextStyle(color: red, fontWeight: FontWeight.w800))),
                 ]),
+                if ((p['byName'] ?? '').isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('\u0AA8\u0ABE\u0A97\u0AB0\u0ABF\u0A95 \u0AB0\u0ABF\u0AAA\u0ACB\u0AB0\u0ACD\u0A9F\u0AB0: ${p['byName']}',
+                        style: const TextStyle(color: muted, fontSize: 13)),
+                  ),
                 const SizedBox(height: 10),
                 Container(height: 3, width: 60, color: red),
                 const SizedBox(height: 18),
@@ -1514,5 +1736,176 @@ class _ShortPageState extends State<ShortPage> {
         ]),
       ),
     ]);
+  }
+}
+
+// ---------- User submission (name + mobile, goes to admin approval) ----------
+bool isYoutube(String u) =>
+    RegExp(r'(youtube\.com|youtu\.be)/').hasMatch(u) && shortOf(u) != null;
+
+Future<bool> submitItem(Map<String, String> f) async {
+  final fields = <String, dynamic>{
+    for (final e in f.entries) e.key: {'stringValue': e.value},
+    'status': {'stringValue': 'pending'},
+    'createdAt': {'timestampValue': DateTime.now().toUtc().toIso8601String()},
+  };
+  try {
+    final r = await http.post(Uri.parse('$base/submissions'),
+        headers: {'Content-Type': 'application/json'}, body: jsonEncode({'fields': fields}));
+    return r.statusCode == 200;
+  } catch (_) {
+    return false;
+  }
+}
+
+class SubmitPage extends StatefulWidget {
+  const SubmitPage({super.key});
+  @override
+  State<SubmitPage> createState() => _SubmitPageState();
+}
+
+class _SubmitPageState extends State<SubmitPage> {
+  String kind = 'news';
+  String? cat;
+  final name = TextEditingController();
+  final mobile = TextEditingController();
+  final title = TextEditingController();
+  final desc = TextEditingController();
+  final link = TextEditingController();
+  final img = TextEditingController();
+  bool busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMe();
+  }
+
+  Future<void> _loadMe() async {
+    final p = await SharedPreferences.getInstance();
+    name.text = p.getString('me_name') ?? '';
+    mobile.text = p.getString('me_mobile') ?? '';
+  }
+
+  @override
+  void dispose() {
+    for (final c in [name, mobile, title, desc, link, img]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> send() async {
+    final n = name.text.trim(), m = mobile.text.trim(), t = title.text.trim(), u = link.text.trim();
+    if (n.length < 2) return snack(context, '\u0AA4\u0AAE\u0ABE\u0AB0\u0AC1\u0A82 \u0AA8\u0ABE\u0AAE \u0AB2\u0A96\u0ACB');
+    if (!RegExp(r'^\d{10}$').hasMatch(m)) return snack(context, '10 \u0A86\u0A82\u0A95\u0AA1\u0ABE\u0AA8\u0ACB \u0AAE\u0ACB\u0AAC\u0ABE\u0A87\u0AB2 \u0AA8\u0A82\u0AAC\u0AB0 \u0AB2\u0A96\u0ACB');
+    if (cat == null) return snack(context, '\u0A95\u0AC7\u0A9F\u0AC7\u0A97\u0AB0\u0AC0 \u0AAA\u0AB8\u0A82\u0AA6 \u0A95\u0AB0\u0ACB');
+    if (t.length < 3) return snack(context, '\u0AB6\u0AC0\u0AB0\u0ACD\u0AB7\u0A95 \u0AB2\u0A96\u0ACB');
+    if (kind == 'news' && desc.text.trim().length < 10) return snack(context, '\u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0 \u0AB2\u0A96\u0ACB');
+    if (kind == 'reel' && !isYoutube(u)) {
+      return snack(context, '\u0AAB\u0A95\u0ACD\u0AA4 YouTube (Shorts) \u0AA8\u0AC0 \u0AB2\u0ABF\u0A82\u0A95 \u0AA8\u0ABE\u0A96\u0ACB');
+    }
+    setState(() => busy = true);
+    final p = await SharedPreferences.getInstance();
+    await p.setString('me_name', n);
+    await p.setString('me_mobile', m);
+    final f = <String, String>{'kind': kind, 'name': n, 'mobile': m, 'title': t, 'categoryId': cat!};
+    if (desc.text.trim().isNotEmpty) f['description'] = desc.text.trim();
+    if (u.isNotEmpty) f['url'] = u;
+    if (kind == 'news' && img.text.trim().isNotEmpty) f['imageUrl'] = img.text.trim();
+    final ok = await submitItem(f);
+    if (!mounted) return;
+    setState(() => busy = false);
+    if (ok) {
+      await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+                title: const Text('\u0A86\u0AAD\u0ABE\u0AB0!'),
+                content: const Text(
+                    '\u0AA4\u0AAE\u0ABE\u0AB0\u0AC0 \u0AB5\u0ABF\u0A97\u0AA4 \u0A8F\u0AA1\u0AAE\u0ABF\u0AA8\u0AA8\u0AC0 \u0AAE\u0A82\u0A9C\u0AC2\u0AB0\u0AC0 \u0AAE\u0ABE\u0A9F\u0AC7 \u0AAE\u0ACB\u0A95\u0AB2\u0ABE\u0A88 \u0A97\u0A88 \u0A9B\u0AC7. \u0AAE\u0A82\u0A9C\u0AC2\u0AB0\u0AC0 \u0AAE\u0AB3\u0ACD\u0AAF\u0ABE \u0AAA\u0A9B\u0AC0 \u0A9C \u0A8F\u0AAA\u0AAE\u0ABE\u0A82 \u0AA6\u0AC7\u0A96\u0ABE\u0AB6\u0AC7.'),
+                actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('\u0AAC\u0AB0\u0ABE\u0AAC\u0AB0'))],
+              ));
+      if (mounted) Navigator.pop(context);
+    } else {
+      snack(context, '\u0AAE\u0ACB\u0A95\u0AB2\u0ABE\u0AAF\u0AC1\u0A82 \u0AA8\u0AB9\u0AC0\u0A82. \u0A87\u0AA8\u0ACD\u0A9F\u0AB0\u0AA8\u0AC7\u0A9F \u0AA4\u0AAA\u0ABE\u0AB8\u0ACB \u0A85\u0AA8\u0AC7 \u0AAB\u0AB0\u0AC0 \u0AAA\u0ACD\u0AB0\u0AAF\u0AA4\u0ACD\u0AA8 \u0A95\u0AB0\u0ACB.');
+    }
+  }
+
+  Widget tf(String label, TextEditingController c,
+          {int lines = 1, TextInputType? type, String? hint, int? maxLen}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: TextField(
+          controller: c,
+          minLines: lines,
+          maxLines: lines == 1 ? 1 : lines + 4,
+          keyboardType: type,
+          maxLength: maxLen,
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            counterText: '',
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final reel = kind == 'reel';
+    return Scaffold(
+      backgroundColor: bgc,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        iconTheme: const IconThemeData(color: onSurf),
+        title: const Text('\u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0 / \u0AB0\u0AC0\u0AB2 \u0AAE\u0ACB\u0A95\u0AB2\u0ACB',
+            style: TextStyle(color: red, fontWeight: FontWeight.w800, fontSize: 18)),
+      ),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Row(children: [
+          Pill('\u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0', !reel, () => setState(() => kind = 'news')),
+          Pill('\u0AB0\u0AC0\u0AB2 / \u0AB5\u0ABF\u0AA1\u0ABF\u0AAF\u0ACB', reel, () => setState(() => kind = 'reel')),
+        ]),
+        const SizedBox(height: 16),
+        tf('\u0AA4\u0AAE\u0ABE\u0AB0\u0AC1\u0A82 \u0AA8\u0ABE\u0AAE', name),
+        tf('\u0AAE\u0ACB\u0AAC\u0ABE\u0A87\u0AB2 \u0AA8\u0A82\u0AAC\u0AB0', mobile, type: TextInputType.phone, maxLen: 10),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 14),
+          child: Text('\u0AA4\u0AAE\u0ABE\u0AB0\u0ACB \u0AAE\u0ACB\u0AAC\u0ABE\u0A87\u0AB2 \u0AA8\u0A82\u0AAC\u0AB0 \u0AAB\u0A95\u0ACD\u0AA4 \u0A8F\u0AA1\u0AAE\u0ABF\u0AA8\u0AA8\u0AC7 \u0AA6\u0AC7\u0A96\u0ABE\u0AB6\u0AC7.',
+              style: TextStyle(color: muted, fontSize: 12)),
+        ),
+        const Text('\u0A95\u0AC7\u0A9F\u0AC7\u0A97\u0AB0\u0AC0', style: TextStyle(fontWeight: FontWeight.w700, color: onSurf)),
+        const SizedBox(height: 8),
+        Wrap(runSpacing: 8, children: [
+          for (final c in store.cs) Pill(c['name'] ?? '', cat == c['id'], () => setState(() => cat = c['id'])),
+        ]),
+        const SizedBox(height: 14),
+        tf('\u0AB6\u0AC0\u0AB0\u0ACD\u0AB7\u0A95', title),
+        tf(reel ? '\u0AB5\u0AB0\u0ACD\u0AA3\u0AA8 (\u0AB5\u0AC8\u0A95\u0AB2\u0ACD\u0AAA\u0ABF\u0A95)' : '\u0AB8\u0AAE\u0ABE\u0A9A\u0ABE\u0AB0 \u0AB2\u0A96\u0ACB', desc, lines: reel ? 2 : 6),
+        tf(reel ? 'YouTube Shorts \u0AB2\u0ABF\u0A82\u0A95' : '\u0AB5\u0ABF\u0AA1\u0ABF\u0AAF\u0ACB \u0AB2\u0ABF\u0A82\u0A95 (\u0AB5\u0AC8\u0A95\u0AB2\u0ACD\u0AAA\u0ABF\u0A95)', link,
+            type: TextInputType.url,
+            hint: reel ? 'https://youtube.com/shorts/...' : 'https://...'),
+        if (!reel) tf('\u0AAB\u0ACB\u0A9F\u0ABE\u0AA8\u0AC0 \u0AB2\u0ABF\u0A82\u0A95 (\u0AB5\u0AC8\u0A95\u0AB2\u0ACD\u0AAA\u0ABF\u0A95)', img, type: TextInputType.url, hint: 'https://...'),
+        const SizedBox(height: 4),
+        SizedBox(
+          height: 52,
+          child: FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: red),
+            onPressed: busy ? null : send,
+            child: busy
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                : const Text('\u0A8F\u0AA1\u0AAE\u0ABF\u0AA8\u0AA8\u0AC7 \u0AAE\u0A82\u0A9C\u0AC2\u0AB0\u0AC0 \u0AAE\u0ABE\u0A9F\u0AC7 \u0AAE\u0ACB\u0A95\u0AB2\u0ACB',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          ),
+        ),
+        const SizedBox(height: 30),
+      ]),
+    );
   }
 }
